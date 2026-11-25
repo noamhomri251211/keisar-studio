@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>קיסר סטודיו · ניהול</title>
+<style>
+:root{--ink:#1f1f1f;--mute:#77736c;--paper:#fff;--stage:#f3f0ea;--line:#e6e1d8;--accent:#b08d66;--ok:#1d7a52;--bad:#b3261e;--font:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--stage);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45}
+main{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 14px}h2{font-size:17px;margin:26px 0 10px}
+.card{background:var(--paper);border-radius:18px;padding:16px;margin-bottom:12px}
+button{font:inherit;border:0;border-radius:99px;padding:10px 18px;background:var(--ink);color:#fff;font-weight:600;cursor:pointer;min-height:44px}
+button.q{background:var(--stage);color:var(--ink)}button[disabled]{opacity:.5}
+input,select{font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;min-height:44px;max-width:100%}
+.tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}.tabs button[aria-pressed=true]{background:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:var(--paper);border-radius:18px;padding:14px}.kpi b{display:block;font-size:26px;font-variant-numeric:tabular-nums}.kpi span{color:var(--mute);font-size:13px}
+.bar{display:grid;grid-template-columns:120px 1fr 56px;gap:10px;align-items:center;margin:8px 0}.bar i{display:block;height:14px;border-radius:99px;background:var(--accent);min-width:2px}.bar em{font-style:normal;color:var(--mute);font-variant-numeric:tabular-nums;text-align:end}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:start;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mute);font-weight:600;font-size:13px}
+td input[type=number]{width:96px}td input[type=text]{width:100%;min-width:180px}
+.msg{min-height:22px;color:var(--mute);margin:8px 0}.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+small{color:var(--mute)}
+</style>
+</head>
+<body>
+<main>
+<h1>קיסר סטודיו · ניהול</h1>
+<div id="gate" class="card">
+  <p style="margin-top:0">נכנסים עם קוד הניהול.</p>
+  <form onsubmit="enter(event)" style="display:flex;gap:8px;flex-wrap:wrap">
+    <input id="code" type="password" autocomplete="off" aria-label="קוד ניהול" placeholder="קוד ניהול">
+    <button>כניסה</button>
+  </form>
+  <p id="gmsg" class="msg" role="status"></p>
+</div>
+<div id="app" hidden>
+  <div class="tabs">
+    <button aria-pressed="true" onclick="show('stats',this)">מבט על</button>
+    <button class="q" aria-pressed="false" onclick="show('orders',this)">הזמנות</button>
+    <button class="q" aria-pressed="false" onclick="show('catalog',this)">קטלוג</button>
+  </div>
+  <p id="msg" class="msg" role="status"></p>
+  <section id="stats"></section>
+  <section id="orders" hidden></section>
+  <section id="catalog" hidden></section>
+</div>
+</main>
+<script>
+// The admin code is kept only in this page's memory: closing or reloading the tab signs out.
+const API='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/admin';let CODE='';
+const $=id=>document.getElementById(id),esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nis=n=>'₪'+Math.round(n||0).toLocaleString('he-IL');
+const say=(t,k)=>{const m=$('msg');m.textContent=t||'';m.className='msg'+(k?' '+k:'')};
+async function call(action,body){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-admin-code':CODE},body:JSON.stringify({action,...body})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(d.error||'server'),{status:r.status});return d;
+}
+const why=e=>e.status===401?'הקוד שגוי.':e.status===429?'יותר מדי ניסיונות. נסו שוב בעוד שעה.':e.status===503?'הניהול עוד לא הופעל: חסר קוד ניהול בשרת.':e.status?'השרת לא הצליח. נסו שוב.':'אין חיבור. נסו שוב.';
+async function enter(ev){ev.preventDefault();CODE=$('code').value;$('gmsg').textContent='בודקים…';
+  try{const d=await call('stats',{days:30});$('code').value='';try{window.NAMES=Object.fromEntries((await call('products')).products.map(p=>[p.id,p.name]))}catch(e){}$('gate').hidden=true;$('app').hidden=false;drawStats(d.stats)}
+  catch(e){CODE='';$('gmsg').textContent=why(e);$('gmsg').className='msg bad'}}
+function show(id,btn){for(const s of['stats','orders','catalog'])$(s).hidden=s!==id;
+  for(const b of document.querySelectorAll('.tabs button')){const on=b===btn;b.setAttribute('aria-pressed',on);b.className=on?'':'q'}
+  say('טוען…');({stats:loadStats,orders:loadOrders,catalog:loadCatalog})[id]().then(()=>say('')).catch(e=>say(why(e),'bad'))}
+const SCREENS=[['screen_join','פתחו הרשמה'],['screen_photo','נרשמו והגיעו לצילום'],['screen_guests','בחרו מספר אורחים'],['screen_result','ראו את המקום מרוהט'],['screen_checkout','פתחו הזמנה'],['screen_done','הזמינו']];
+async function loadStats(){drawStats((await call('stats',{days:+($('days')?.value||30)})).stats)}
+function drawStats(s){const f=s.funnel||{},top=Math.max(1,...SCREENS.map(([k])=>f[k]||0)),NAMES=window.NAMES||{};
+  $('stats').innerHTML=`<div style="margin-bottom:12px"><label>תקופה <select id="days" onchange="show('stats',document.querySelector('.tabs button'))">${[7,30,90].map(d=>`<option value="${d}" ${s.days==d?'selected':''}>${d} ימים אחרונים</option>`).join('')}</select></label></div>
+  <div class="kpis"><div class="kpi"><b>${s.sessions}</b><span>ביקורים</span></div><div class="kpi"><b>${s.joins}</b><span>הרשמות</span></div><div class="kpi"><b>${s.orders}</b><span>הזמנות</span></div><div class="kpi"><b>${nis(s.revenue)}</b><span>סך ההזמנות</span></div><div class="kpi"><b>${s.sessions?Math.round(100*s.orders/s.sessions):0}%</b><span>מביקור להזמנה</span></div><div class="kpi"><b>${s.realistic}</b><span>תמונות מציאותיות</span></div></div>
+  <h2>איפה נושרים בדרך</h2><div class="card">${SCREENS.map(([k,n])=>`<div class="bar"><span>${n}</span><i style="width:${100*(f[k]||0)/top}%"></i><em>${f[k]||0}</em></div>`).join('')}</div>
+  <h2>המוצרים שהוזמנו הכי הרבה</h2><div class="card">${(s.top||[]).length?s.top.map(t=>`<div class="bar"><span>${esc(NAMES[t.id]||t.id)}</span><i style="width:${100*t.n/s.top[0].n}%"></i><em>${t.n}</em></div>`).join(''):'<small>עוד אין הזמנות בתקופה הזאת.</small>'}</div>
+  <h2>הזמנות לפי יום</h2><div class="card">${(s.by_day||[]).length?s.by_day.map(d=>`<div class="bar"><span>${esc(d.d)}</span><i style="width:${100*d.t/Math.max(...s.by_day.map(x=>x.t))}%"></i><em>${d.n}</em></div>`).join(''):'<small>עוד אין הזמנות בתקופה הזאת.</small>'}</div>`}
+const ST={new:'חדשה',confirmed:'אושרה',paid:'שולמה',cancelled:'בוטלה'},AREA={sharon:'השרון וקיסריה',center:'גוש דן והמרכז',jlm:'ירושלים והסביבה',far:'צפון / דרום'};
+async function loadOrders(){const{orders}=await call('orders');
+  $('orders').innerHTML=orders.length?`<div class="card tw"><table><thead><tr><th>מס׳</th><th>התקבלה</th><th>לקוח</th><th>אירוע</th><th>מה הוזמן</th><th>סה״כ</th><th>מצב</th></tr></thead><tbody>${orders.map(o=>`<tr><td>${esc(o.no)}</td><td>${new Date(o.created_at).toLocaleString('he-IL',{dateStyle:'short',timeStyle:'short'})}</td><td>${esc(o.email)}<br><bdi>${esc(o.phone)}</bdi></td><td>${esc(o.event_date)} · ${o.guests} אורחים<br><small>${esc(o.address)} · ${esc(AREA[o.area]||o.area)}</small></td><td><small>${o.lines.map(l=>`${esc(l.name)} × ${l.q}${l.color?' ('+esc(l.color)+')':''}`).join('<br>')}</small></td><td>${nis(o.total_ils)}</td><td><select aria-label="מצב הזמנה ${esc(o.no)}" onchange="setStatus('${o.id}',this)">${Object.entries(ST).map(([k,n])=>`<option value="${k}" ${o.status===k?'selected':''}>${n}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>`:'<div class="card"><small>עוד אין הזמנות.</small></div>'}
+async function setStatus(id,el){el.disabled=true;try{await call('order_status',{id,status:el.value});say('המצב עודכן.','ok')}catch(e){say(why(e),'bad')}el.disabled=false}
+const KIND={chair:'כיסא',table:'שולחן',extra:'תוספת בתמונה',addon:'תוספת'};
+async function loadCatalog(){const{products}=await call('products');window.NAMES=Object.fromEntries(products.map(p=>[p.id,p.name]));
+  $('catalog').innerHTML=`<p><small>שינוי שם, תיאור או מחיר נכנס לאפליקציה בכניסה הבאה של לקוח. מוצר כבוי לא מוצג ללקוחות. התמונות עדיין מתעדכנות דרכנו.</small></p><div class="card tw"><table><thead><tr><th>מוצר</th><th>תיאור</th><th>מחיר ₪</th><th>מוצג</th><th></th></tr></thead><tbody>${products.map(p=>`<tr data-id="${esc(p.id)}"><td><input type="text" data-f="name" aria-label="שם" value="${esc(p.name)}"><br><small>${KIND[p.kind]||''}</small></td><td><input type="text" data-f="description" aria-label="תיאור" value="${esc(p.description)}"></td><td><input type="number" data-f="price_ils" aria-label="מחיר" min="0" step="1" value="${p.price_ils}"></td><td><input type="checkbox" data-f="active" aria-label="מוצג ללקוחות" ${p.active?'checked':''} style="min-height:0;width:22px;height:22px"></td><td><button class="q" onclick="saveRow(this)">שמירה</button></td></tr>`).join('')}</tbody></table></div>`}
+async function saveRow(btn){const tr=btn.closest('tr'),fields={};for(const i of tr.querySelectorAll('[data-f]'))fields[i.dataset.f]=i.type==='checkbox'?i.checked:i.type==='number'?+i.value:i.value;
+  btn.disabled=true;try{await call('product_update',{id:tr.dataset.id,fields});say('נשמר: '+fields.name,'ok')}catch(e){say(e.message==='price'?'המחיר לא תקין.':e.message==='name'?'חסר שם למוצר.':why(e),'bad')}btn.disabled=false}
+</script>
+</body>
+</html>

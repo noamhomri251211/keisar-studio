@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>קיסר סטודיו דמו</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* layout idea: one calm white column, the photo is the hero of every screen, one filled button per screen */
+:root{
+  color-scheme: light;
+  --stage:#EFEFEB; --paper:#FFFFFF; --ink:#101014; --mute:#73737E; --line:#E7E7EC;
+  --accent:#4B3BFF; --accent-soft:#EEECFF; --ok:#0E9F6E; --warn:#C8472D;
+  --font:"Rubik","Heebo",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--stage);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.3;cursor:default}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+[hidden]{display:none!important}
+.stage{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:72px;align-items:center;max-width:1040px;margin:0 auto;padding:24px}
+.pitch h1{font-weight:800;font-size:56px;line-height:1.02;letter-spacing:-.02em;margin:0 0 20px;text-wrap:balance}
+.pitch h1 em{font-style:normal;color:var(--accent)}
+.pitch p{max-width:40ch;color:var(--mute);margin:0 0 28px;font-size:18px}
+.pitch ol{list-style:none;padding:0;margin:0 0 30px;display:flex;gap:10px;flex-wrap:wrap}
+.pitch li{background:var(--paper);border-radius:99px;padding:9px 16px;font-weight:500;display:flex;gap:8px;align-items:center}
+.pitch li span{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--mute);max-width:46ch}
+.phone{height:min(820px,100%);background:var(--paper);border-radius:44px;display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 0 0 10px #17171c,0 40px 80px -30px rgba(16,16,20,.5)}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 22px 6px}
+.brand{font-weight:800;font-size:17px;letter-spacing:-.01em}
+.brand i{font-style:normal;color:var(--accent)}
+.pill{font-size:11px;font-weight:600;background:var(--stage);color:var(--mute);padding:4px 10px;border-radius:99px}
+.scr{flex:1;overflow-y:auto;padding:10px 22px 22px;container-type:size}
+h2{font-weight:800;font-size:34px;line-height:1.05;letter-spacing:-.02em;margin:8px 0 10px;text-wrap:balance}
+.sub{color:var(--mute);margin:0 0 18px;font-size:16px}
+.lbl{font-size:13px;font-weight:600;color:var(--mute);margin:22px 0 10px;display:flex;justify-content:space-between;gap:10px}
+.lbl b{color:var(--ink);font-weight:600}
+.btn{display:block;width:100%;border:0;border-radius:99px;padding:17px;font-weight:700;font-size:17px;background:var(--accent);color:#fff;text-align:center;transition:transform .12s}
+.btn:active{transform:scale(.98)}
+.btn.dark{background:var(--ink)}
+.btn.sm{width:auto;padding:13px 22px;font-size:15px}
+.lnk{border:0;background:none;padding:10px;color:var(--mute);font-weight:500;font-size:14.5px;text-decoration:underline;text-underline-offset:3px}
+.stack{display:grid;gap:8px;justify-items:center}
+.upb{position:relative;overflow:hidden;cursor:pointer}
+.upb input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.upb:focus-within{outline:3px solid var(--accent);outline-offset:3px}
+label.lnk{display:block}
+.alt{display:flex;gap:6px;align-items:center;justify-content:center}
+/* the picture */
+.shot{position:relative;aspect-ratio:1/1;border-radius:28px;overflow:hidden;background:#d8d8d2;isolation:isolate}
+.shot>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.shot::after{content:"";position:absolute;inset:0;z-index:3000;pointer-events:none;opacity:.5;mix-blend-mode:soft-light;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+.layer{position:absolute;inset:0;transition:opacity .3s}
+.sp{position:absolute;line-height:0;transform:translateX(-50%) scaleY(var(--sy,1));transform-origin:50% 100%}
+.sp img{width:100%;display:block}
+.sp.fl img{transform:scaleX(-1)}
+.sp .sh{position:absolute;left:0;bottom:0;transform-origin:50% 100%;filter:brightness(0) blur(1.1px)}
+.sp.sun .sh{transform:scaleY(var(--shy,-.3)) skewX(var(--shx,-30deg));opacity:.38}
+.sp.sun.fl .sh{transform:scaleY(var(--shy,-.3)) skewX(var(--shx,-30deg)) scaleX(-1)}
+.sp.soft .sh{display:none}
+.sp.soft::before{content:"";position:absolute;left:-10%;right:-10%;bottom:-5%;height:13%;border-radius:50%;background:radial-gradient(ellipse at center,rgba(4,8,22,.55),rgba(4,8,22,.25) 45%,transparent 72%);filter:blur(1px)}
+.grp{position:absolute;inset:0;pointer-events:none}
+.grp .sp{pointer-events:auto;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.grp .sp img{pointer-events:none;-webkit-user-drag:none}
+.grp.drag .sp{cursor:grabbing;filter:drop-shadow(0 0 6px rgba(75,59,255,.9))}
+.layer.in .grp{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0}}
+.ba{position:absolute;inset:12px auto auto 12px;z-index:3100;border:0;background:rgba(16,16,20,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font-size:12.5px;font-weight:500;padding:8px 14px;border-radius:99px}
+.scanline{position:absolute;inset:0;z-index:3200;background:linear-gradient(180deg,transparent 46%,rgba(120,105,255,.55) 50%,transparent 54%);animation:scan 1.4s ease-in-out infinite alternate}
+@keyframes scan{from{transform:translateY(-48%)}to{transform:translateY(48%)}}
+.stick{position:sticky;top:-10px;z-index:5;background:var(--paper);padding:4px 0 10px}
+.stick .shot{width:min(100%,52cqh);margin-inline:auto;transition:width .28s cubic-bezier(.2,.8,.2,1)}
+.stick.mini .shot{width:min(100%,34cqh)}
+/* guests */
+.count{display:flex;align-items:center;justify-content:center;gap:22px;margin:22px 0 8px}
+.count b{min-width:2.9ch!important;font-size:76px;font-weight:800;letter-spacing:-.04em;line-height:1;min-width:2.2ch;text-align:center;font-variant-numeric:tabular-nums}
+.count button,.mini .g button{border:0;background:var(--stage);border-radius:50%;font-weight:500;color:var(--ink);line-height:1;display:grid;place-items:center}
+.count button{width:56px;height:56px;font-size:28px}
+.slide{display:flex;align-items:center;gap:12px;margin:0 0 26px;color:var(--mute);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.slide input{flex:1;accent-color:var(--accent);height:32px}
+.quick{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
+.quick button{border:0;background:none;color:var(--mute);font-weight:600;padding:8px 14px;border-radius:99px;font-variant-numeric:tabular-nums}
+.quick button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.mini{display:flex;align-items:center;justify-content:space-between;margin:14px 0 2px}
+.mini .g{display:flex;align-items:center;gap:12px}
+.mini b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.mini .g button{width:36px;height:36px;font-size:20px}
+.mini .lnk{padding-inline-end:0}
+/* pickers */
+.sw{display:flex;gap:10px}
+.sw button{flex:1;border:2px solid transparent;background:var(--stage);border-radius:20px;padding:10px 6px 9px;display:grid;justify-items:center;gap:4px;transition:background .15s,border-color .15s}
+.sw button img{height:58px;width:100%;object-fit:contain}
+.sw button span{font-size:12.5px;font-weight:600;color:var(--mute);font-variant-numeric:tabular-nums}
+.sw button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.sw button[aria-pressed="true"] span{color:var(--accent)}
+.ex{display:flex;gap:10px}
+.ex button{flex:1;border:2px solid transparent;background:var(--stage);border-radius:99px;padding:12px 4px;font-weight:600;font-size:13px;white-space:nowrap;color:var(--mute);font-variant-numeric:tabular-nums}
+.ex button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.bar{position:sticky;bottom:-22px;z-index:6;margin:22px -22px -22px;padding:14px 22px 18px;background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.bar .sum{flex:1;line-height:1.1}
+.bar .sum b{font-size:28px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:inline-block}
+.bar .sum b.bump{animation:bump .35s ease-out}
+@keyframes bump{from{transform:scale(1.14);color:var(--accent)}}
+.bar .sum small{display:block;color:var(--mute);font-size:12.5px;margin-top:3px}
+.bar .sum small.up{color:var(--warn);font-weight:600}.bar .sum small.down{color:var(--ok);font-weight:600}
+/* quote */
+.rows{display:grid;margin-top:6px}
+.row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.row img{width:44px;height:44px;object-fit:contain;background:var(--stage);border-radius:12px;padding:4px}
+.row .nm{font-weight:600;font-size:14.5px;line-height:1.25}
+.row .nm small{display:block;color:var(--mute);font-weight:400;font-size:13px;font-variant-numeric:tabular-nums}
+.row .tot{font-variant-numeric:tabular-nums;font-weight:600}
+select{width:100%;border:0;border-radius:16px;padding:14px;background:var(--stage);font-weight:500}
+.totals{margin:18px 0;display:grid;gap:8px;font-variant-numeric:tabular-nums;color:var(--mute)}
+.totals div{display:flex;justify-content:space-between}
+.totals .big{color:var(--ink);font-weight:800;font-size:30px;letter-spacing:-.02em;padding-top:10px;border-top:1px solid var(--line);align-items:baseline}
+.totals .big span:first-child{font-size:15px;font-weight:600}
+.cap{font-size:12.5px;color:var(--mute);margin:12px 0 0;text-align:center}
+.prog{list-style:none;padding:0;margin:22px 0;display:grid;gap:12px;font-size:16px}
+.prog li{display:flex;gap:12px;align-items:center;color:var(--mute)}
+.prog li::before{content:"";width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none}
+.prog li.on{color:var(--ink);font-weight:500}
+.prog li.on::before{border-color:var(--accent);border-top-color:transparent;animation:spin .7s linear infinite}
+.prog li.done{color:var(--ink)}
+.prog li.done::before{background:var(--accent);border-color:var(--accent)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.phone.home .top{display:none}
+.hero{position:relative;margin:-10px -22px -22px;height:calc(100cqh + 32px);overflow:hidden;background:#0c1024}
+.hbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 60%}
+.veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(8,10,30,.8) 0,rgba(8,10,30,.5) 28%,rgba(8,10,30,.05) 52%,rgba(8,10,30,.25) 70%,rgba(8,10,30,.8) 100%)}
+.hin{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;padding:26px 26px 24px;color:#fff}
+.hin .brand{align-self:stretch;text-align:start;margin-bottom:34px}
+.hin .brand i{color:#B9B1FF}
+.hin h1{font-weight:800;font-size:46px;line-height:1;letter-spacing:-.03em;margin:0 0 14px;text-wrap:balance}
+.hin p{margin:0;font-size:17px;max-width:24ch;opacity:.92}
+.cta{width:auto;margin-top:auto;margin-bottom:30px;padding:20px 56px;font-size:20px;box-shadow:0 14px 40px -8px rgba(75,59,255,.75),0 0 0 6px rgba(255,255,255,.16)}
+.steps{display:flex;gap:8px;font-size:13px;font-weight:500}
+.steps span{background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:6px 13px;border-radius:99px}
+.tile{display:grid;place-items:center;align-content:center;gap:12px;aspect-ratio:1/1;border-radius:28px;background:var(--accent-soft);color:var(--accent);margin-bottom:10px}
+.tile svg{width:64px;height:64px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linejoin:round}
+.tile b{font-size:19px;font-weight:700}
+.back{padding:0 0 4px;display:block}
+.f{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.f label{font-size:13px;font-weight:600;color:var(--mute);margin-top:4px}
+.f input,.f select{min-width:0;max-width:100%}.f input{display:block;-webkit-appearance:none;appearance:none;text-align:start;width:100%;border:0;border-radius:16px;padding:14px;background:var(--stage);min-height:50px}
+.inc{list-style:none;padding:0;margin:0;display:grid;gap:8px;font-size:14.5px}
+.inc li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start}
+.inc li b{font-weight:600}
+.inc li::before{content:"✓";width:22px;height:22px;border-radius:50%;background:#DDF5EA;color:var(--ok);font-weight:700;font-size:13px;display:grid;place-items:center}
+.inc.no li::before{content:"✕";background:var(--stage);color:var(--mute)}
+.pay{display:flex;gap:12px;align-items:center;background:var(--stage);border-radius:18px;padding:14px}
+.pay .card{background:var(--ink);color:#fff;font-weight:800;font-size:12px;letter-spacing:.06em;padding:9px 10px;border-radius:8px}
+.pay b{display:block;font-weight:600}.pay small{color:var(--mute);font-size:12.5px}
+.done{text-align:center;padding-top:28px}
+.tick{width:84px;height:84px;border-radius:50%;background:var(--accent);margin:0 auto 18px;display:grid;place-items:center;animation:pop .45s cubic-bezier(.2,1.4,.4,1) both}
+.tick svg{width:44px;height:44px;fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+@keyframes pop{from{transform:scale(.3);opacity:0}}
+.recap{background:var(--stage);border-radius:22px;padding:6px 18px;margin:8px 0 14px;text-align:start}
+.recap div{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.recap div:last-child{border:0}
+.recap span{color:var(--mute)}.recap b{font-weight:600;text-align:end}
+.scr.enter>*:not(.hero):not(.bar){animation:enter .38s cubic-bezier(.2,.8,.2,1) both}
+.scr.enter>*:nth-child(2){animation-delay:.04s}.scr.enter>*:nth-child(3){animation-delay:.08s}.scr.enter>*:nth-child(n+4){animation-delay:.12s}
+@keyframes enter{from{opacity:0;transform:translateY(10px)}}
+.scr.enter>.stick{animation-name:fade}
+@keyframes fade{from{opacity:0}}
+.hbg{animation:drift 16s ease-out both}
+@keyframes drift{from{transform:scale(1.1)}}
+.hin>*{animation:enter .7s cubic-bezier(.2,.8,.2,1) both}
+.hin>:nth-child(2){animation-delay:.1s}.hin>:nth-child(3){animation-delay:.2s}.hin>:nth-child(4){animation-delay:.35s}.hin>:nth-child(5){animation-delay:.5s}
+.gsub{text-align:center;color:var(--mute);font-weight:500;margin:0 0 14px;font-variant-numeric:tabular-nums}
+.facts{margin:2px 0 0;display:grid;gap:2px;font-size:14px}
+.facts b{font-weight:600;font-variant-numeric:tabular-nums}.facts span{color:var(--mute);font-size:13px}
+.next{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:0;text-align:start}
+.next li{position:relative;padding:0 26px 16px 0;color:var(--mute);font-size:14px}
+.next li b{display:block;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.next li::before{content:"";position:absolute;right:4px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.next li::after{content:"";position:absolute;right:8.5px;top:17px;bottom:-3px;width:1.5px;background:var(--line)}
+.next li:last-child{padding-bottom:0}.next li:last-child::after{display:none}
+.row .gl{width:44px;height:44px;background:var(--stage);border-radius:12px;display:grid;place-items:center;color:var(--mute)}
+.row .gl svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.addon{display:flex;align-items:center;gap:12px;width:100%;text-align:start;border:2px solid transparent;background:var(--stage);border-radius:18px;padding:13px 14px}
+.addon .nm{flex:1;line-height:1.25}.addon .nm b{font-weight:600;font-size:14.5px;display:block}.addon .nm small{color:var(--mute);font-size:12.5px}
+.addon .p{font-weight:600;font-variant-numeric:tabular-nums}
+.addon .box{width:22px;height:22px;border-radius:7px;border:2px solid #C9C9D2;flex:none;display:grid;place-items:center}
+.addon[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.addon[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent)}
+.addon[aria-pressed="true"] .box::after{content:"";width:10px;height:6px;border:2.5px solid #fff;border-top:0;border-inline-end:0;transform:rotate(-45deg) translate(1px,-1px)}
+.head h2{font-size:28px;margin:10px 0 2px}
+.head p{margin:0;color:var(--mute);font-size:14px}
+.sty{margin:10px 0 2px}.sty label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}.sty label small{color:var(--mute);font-weight:400}
+.sty input{display:block;width:100%;min-width:0;border:0;border-radius:14px;padding:0 14px;min-height:46px;background:var(--paper);box-shadow:0 1px 0 var(--line);-webkit-appearance:none;appearance:none}
+.styc{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.styc .chipb{flex:none;min-height:40px;padding:0 13px}.styc .chipb[aria-pressed=true]{background:var(--accent);color:var(--on-accent);box-shadow:none}
+.demonote{margin-top:14px;font-size:12.5px;color:var(--mute);text-align:center}
+.chipsrow{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+.chipb{border:0;background:var(--accent-soft);color:var(--accent);border-radius:99px;padding:9px 14px;font-weight:600;font-size:13.5px;font-variant-numeric:tabular-nums}
+.chipb b{font-weight:800}.chipb.ghost{background:var(--stage);color:var(--mute)}
+.cat{font-size:19px;font-weight:800;letter-spacing:-.01em;margin:26px 0 4px;display:flex;align-items:baseline;gap:8px}
+.cat small{font-size:13px;font-weight:500;color:var(--mute)}
+.it{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:4px 0}
+.it>.itm{flex:1 1 0;min-width:0}
+.sw{flex:0 0 100%;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:0;padding:0 0 10px}
+.sw button{position:relative;flex:none;width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer}
+.sw button::before{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.sw button[aria-checked=true]::after{content:"";position:absolute;inset:3px;border-radius:50%;box-shadow:0 0 0 2px var(--accent)}
+.sw small{margin-inline-start:6px;color:var(--mute);font-size:12.5px}
+.it:last-of-type{border-bottom:0}
+.itm{flex:1;display:flex;align-items:center;gap:14px;border:0;background:none;text-align:start;padding:10px 0;min-width:0}
+.itm img,.itm .gl{width:76px;height:76px;flex:none;border-radius:16px;background:var(--stage);object-fit:contain;padding:8px;display:grid;place-items:center;color:var(--mute)}
+.itm .gl svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.itm .tx{display:grid;gap:2px;min-width:0}
+.itm b{font-weight:600;font-size:15.5px;line-height:1.25}
+.itm small{color:var(--mute);font-size:13px;line-height:1.3}
+.itm .pr{color:var(--accent);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;margin-top:2px;display:flex;gap:10px;align-items:baseline}
+.itm .pr i{font-style:normal;color:var(--mute);font-weight:400;font-size:12.5px;unicode-bidi:isolate}
+.pk{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--accent-soft);color:var(--accent);font-size:22px;font-weight:600;line-height:1;display:grid;place-items:center;transition:transform .12s,background .15s}
+.pk:active{transform:scale(.9)}
+.pk[aria-pressed="true"]{background:var(--accent);color:#fff;font-size:17px}
+.it.on .itm b{color:var(--accent)}
+.cartbar{position:sticky;bottom:-6px;z-index:6;width:100%;margin-top:22px;border:0;border-radius:18px;background:var(--accent);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;font-weight:700;font-size:16.5px;box-shadow:0 12px 30px -10px rgba(75,59,255,.7)}
+.cartbar .n{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:14px;font-variant-numeric:tabular-nums}
+.cartbar .t{flex:1;text-align:start}
+.cartbar b{font-weight:700;font-variant-numeric:tabular-nums;display:inline-block}
+.cartbar b.bump{animation:bump2 .35s ease-out}
+@keyframes bump2{from{transform:scale(1.2)}}
+.backb{width:40px;height:40px;border-radius:50%;border:0;background:var(--stage);display:grid;place-items:center;margin-bottom:6px}
+.backb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.sheet{position:absolute;inset:0;z-index:9;background:rgba(16,16,20,0);pointer-events:none;display:flex;align-items:flex-end;transition:background .25s}
+.sheet.open{background:rgba(16,16,20,.45);pointer-events:auto}
+.sheet>div{width:100%;background:var(--paper);border-radius:28px 28px 0 0;padding:10px 22px 26px;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.9,.2,1);max-height:88%;overflow:auto}
+.sheet.open>div{transform:none}
+.grab{width:44px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 14px}
+.sheet .big{background:var(--stage);border-radius:22px;height:200px;display:grid;place-items:center;margin-bottom:16px;overflow:hidden}
+.sheet .big img{max-width:78%;height:168px;object-fit:contain}
+.sheet .big.m3{height:min(46vh,340px);display:block;position:relative}.sheet .big model-viewer{width:100%;height:100%;background:transparent}
+.arb{position:absolute;inset-inline:12px;bottom:12px;min-height:48px;border:0;border-radius:14px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:700}
+.b3d{display:block;width:100%;min-height:44px;margin:0 0 12px;border:0;border-radius:14px;background:var(--stage);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.m3n{font-size:12.5px;color:var(--mute);margin:0 0 12px}
+.sheet .big .gl svg{width:70px;height:70px;fill:none;stroke:var(--mute);stroke-width:1.4;stroke-linecap:round}
+.sheet h4{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+.sheet p{margin:0 0 14px;color:var(--mute)}
+.calc{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding:14px 0 16px;color:var(--mute);font-variant-numeric:tabular-nums}
+.calc b{color:var(--ink);font-size:22px;font-weight:800}
+.sheet .count{margin:8px 0 6px}
+.toast{position:absolute;inset-inline:22px;bottom:18px;background:var(--ink);color:#fff;border-radius:16px;padding:12px 16px;font-size:14px;text-align:center;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:8}
+.toast.on{opacity:1;transform:none}
+.err{color:var(--warn);font-size:13px;margin:0;min-height:1.2em}
+@media (max-width:860px){
+  .stage{display:block;padding:0;max-width:none}
+  .pitch{display:none}
+  .phone{height:100%;border-radius:0;box-shadow:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== theme: Caesar Events colours. Gold carries selection and price, charcoal carries structure. ===== */
+:root{--stage:#E9E7E3;--bg:#F6F6F6;--paper:#FFFFFF;--ink:#1F1F1F;--mute:#77746F;--line:#E9E6E1;
+  --accent:#B18E66;--accent-ink:#86673F;--accent-soft:#F4EDE4;--on-accent:#1E1710;--ok:#2E8B62;--warn:#B8482F}
+.phone{background:var(--bg)}
+.scr,.stick{background:var(--bg)}
+.stick{margin-inline:-22px;padding-inline:22px}
+.brand i{color:var(--accent-ink)}
+.pill{background:var(--paper)}
+.btn{background:var(--accent);color:var(--on-accent)}
+.btn.dark{background:var(--ink);color:#fff}
+.lnk{color:var(--mute)}
+.shot{box-shadow:0 18px 40px -22px rgba(31,31,31,.55)}
+.live{position:absolute;inset:12px 12px auto auto;z-index:3100;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--ink);font-size:12px;font-weight:600;padding:7px 12px;border-radius:99px;display:flex;align-items:center;gap:7px}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25;transform:scale(.7)}}
+.scanline{background:linear-gradient(180deg,transparent 46%,rgba(177,142,102,.7) 50%,transparent 54%)}
+.tile{background:var(--paper);color:var(--accent-ink);box-shadow:inset 0 0 0 2px var(--accent-soft)}
+.count button{background:var(--paper)}
+.slide input{accent-color:var(--accent)}
+.head h2{font-size:30px}
+.chipb{background:var(--paper);color:var(--ink);box-shadow:0 1px 0 var(--line)}
+.chipb b{color:var(--accent-ink)}
+.chipb.ghost{background:none;box-shadow:none;color:var(--mute)}
+.cat{font-size:20px;margin:28px 0 10px}
+.cat span{position:relative;padding-inline-start:12px}
+.cat span::before{content:"";position:absolute;inset-inline-start:0;top:.2em;bottom:.2em;width:4px;border-radius:4px;background:var(--accent)}
+.itm .pr{color:var(--accent-ink)}
+.it.on .itm b{color:var(--ink)}
+.pk{background:var(--accent-soft);color:var(--accent-ink)}
+.pk[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.bdg{position:absolute;inset:8px auto auto 8px;z-index:1;font-style:normal;background:var(--ink);color:#fff;font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px}
+/* a rail of cards for chairs */
+.rail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -22px;padding:2px 22px 8px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail .it{flex:0 0 47%;scroll-snap-align:start}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rail .it,.duo .it{position:relative;display:block;background:var(--paper);border-radius:24px;padding:8px 8px 14px;border:2px solid transparent;transition:border-color .15s,transform .15s}
+.rail .it.on,.duo .it.on{border-color:var(--accent)}
+.rail .itm,.duo .itm{position:relative;flex-direction:column;align-items:stretch;gap:10px;padding:0;width:100%}
+.rail .itm img,.duo .itm img{width:100%;height:116px;border-radius:18px;background:var(--bg)}
+.rail .tx,.duo .tx{padding:0 6px}
+.rail .tx small,.duo .tx small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+.rail .pr,.duo .pr{flex-direction:column;gap:0;align-items:flex-start}
+.rail .pk,.duo .pk{position:absolute;inset:82px auto auto 16px;width:36px;height:36px;box-shadow:0 6px 14px -6px rgba(31,31,31,.5);background:var(--paper)}
+.rail .pk[aria-pressed="true"],.duo .pk[aria-pressed="true"]{background:var(--accent)}
+/* add-ons as one white card of rows */
+.list{background:var(--paper);border-radius:24px;padding:2px 14px}
+.list .itm img,.list .itm .gl{width:64px;height:64px;background:var(--bg)}
+.cartbar{background:var(--ink);box-shadow:0 14px 30px -12px rgba(31,31,31,.7)}
+.cartbar .n{background:var(--accent);color:var(--on-accent)}
+.cartbar b{color:#E7CFAE}
+.bar{background:rgba(246,246,246,.92)}
+/* checkout and confirmation: white cards on the grey page */
+.rows,.f,.inc,.totals{background:var(--paper);border-radius:22px;padding:4px 16px}
+.f,.inc,.totals{padding:16px}
+.totals{margin:14px 0}
+.row:last-child{border-bottom:0}
+.row img,.row .gl,.f input,select{background:var(--bg)}
+.pays{background:var(--paper);border-radius:18px;padding:4px 14px}
+.payo{display:flex;gap:12px;align-items:center;width:100%;min-height:64px;padding:10px 0;background:none;border:0;font:inherit;color:inherit;text-align:start;cursor:pointer}
+.payo+.payo{border-top:1px solid var(--line)}
+.payo .card{flex:none;min-width:52px;text-align:center;background:var(--ink);color:#fff;font-weight:800;font-size:12px;letter-spacing:.06em;padding:9px 8px;border-radius:8px}
+.payo .card.apple{background:#fff;color:#000;box-shadow:inset 0 0 0 1.5px #000;letter-spacing:0;font-size:13px;font-weight:600}
+.payo .nm{flex:1}.payo b{display:block;font-weight:600}.payo small{color:var(--mute);font-size:12.5px}
+.payo .rd{flex:none;width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 2px #CFCFCF;transition:box-shadow .15s}
+.payo[aria-checked=true] .rd{box-shadow:inset 0 0 0 7px var(--accent)}
+.payo:active{opacity:.7}
+.backb{background:var(--paper)}
+.tick{background:var(--accent)}
+.tick svg{stroke:var(--on-accent)}
+.recap{background:var(--paper)}
+.prog li.on::before{border-color:var(--accent);border-top-color:transparent}
+.prog li.done::before{background:var(--accent);border-color:var(--accent)}
+.next li::before{background:var(--accent)}
+.sheet .big{background:var(--bg)}
+.hin .brand i{color:#E7CFAE}
+.cta{background:linear-gradient(180deg,#C9A57A,#B18E66);box-shadow:0 14px 40px -8px rgba(177,142,102,.8),0 0 0 6px rgba(255,255,255,.16)}
+.pitch h1 em{color:var(--accent-ink)}
+.pitch li span{color:var(--accent-ink)}
+.grp.drag .sp{filter:drop-shadow(0 0 6px rgba(177,142,102,.95))}
+
+/* ===== opening page: dark stage, gold rings, the furniture itself floating around the words ===== */
+.hero.dark{background:radial-gradient(110% 70% at 50% 58%,#3B2F22 0,#1E1C1D 52%,#131214 100%)}
+.rings{position:absolute;left:50%;top:60%;width:0;height:0}
+.rings i{position:absolute;border-radius:50%;border:1px solid rgba(177,142,102,.34);translate:-50% -50%}
+.rings i:nth-child(1){width:58cqw;height:58cqw}
+.rings i:nth-child(2){width:96cqw;height:96cqw;border-style:dashed;border-color:rgba(177,142,102,.26);animation:turn 60s linear infinite}
+.rings i:nth-child(3){width:140cqw;height:140cqw;border-color:rgba(177,142,102,.14)}
+@keyframes turn{to{rotate:360deg}}
+.fly{position:absolute;z-index:1;filter:drop-shadow(0 18px 18px rgba(0,0,0,.55));animation:float 7s ease-in-out infinite alternate}
+.f1{width:66%;left:-20%;top:9%;--r:-9deg}
+.f2{width:27%;right:5%;top:8%;--r:7deg;animation-delay:-2s;animation-duration:8s}
+.f3{width:52%;left:-12%;bottom:1%;--r:5deg;animation-delay:-4s;animation-duration:9s}
+.f4{width:19%;right:7%;bottom:2%;--r:-6deg;animation-delay:-1s}
+@keyframes float{from{transform:translateY(5px) rotate(var(--r))}to{transform:translateY(-7px) rotate(calc(var(--r) + 2deg))}}
+.hero.dark .hin{justify-content:flex-start;padding:22px 26px}
+.hero.dark .brand{margin-bottom:0}
+.hero.dark h1{margin-top:calc(34cqh - 20px);font-size:44px}
+.hero.dark h1 em{font-style:normal;color:#E0C39C}
+.say{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:5px;counter-reset:n;font-size:17px;text-align:start}
+.say li{counter-increment:n;display:flex;gap:10px;align-items:baseline;opacity:.94}
+.say li::before{content:counter(n);width:22px;height:22px;flex:none;border-radius:50%;border:1px solid rgba(224,195,156,.7);color:#E0C39C;font-size:12px;font-weight:700;display:grid;place-items:center;translate:0 -1px}
+.hero.dark .cta{margin:26px 0 12px;padding:19px 60px}
+.fine{margin:0;font-size:13px;opacity:.6;max-width:none;position:relative;z-index:2}
+@container (max-height:640px){.fine{display:none}.hero.dark h1{margin-top:calc(31cqh - 20px);font-size:38px}.hero.dark .cta{margin-top:18px}}
+
+/* opening page on a plain background: the words and the button, centred */
+.hero.dark.plain{background:linear-gradient(180deg,#1C1B1D,#141315)}
+.hero.dark.plain .hin{justify-content:center}
+.hero.dark.plain .brand{position:absolute;inset:22px 26px auto 26px}
+.hero.dark.plain h1{margin-top:0;font-size:46px}
+.hero.dark.plain .say{margin-top:10px}
+.hero.dark.plain .cta{margin:34px 0 14px}
+.hero.dark.plain .fine{display:block}
+
+/* swipe to order */
+.swipe{position:relative;flex:1;height:58px;border-radius:99px;background:var(--ink);overflow:hidden;--p:0;touch-action:none}
+.swipe::before{content:"";position:absolute;inset:0;background:var(--accent);opacity:var(--p)}
+.swipe .lab{position:absolute;inset:0;display:grid;place-items:center;padding-right:54px;color:#fff;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;opacity:calc(1 - var(--p)*1.5)}
+.knob{position:absolute;top:4px;right:4px;z-index:1;width:50px;height:50px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;touch-action:none;cursor:grab;transition:transform .25s}
+.knob svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+/* order tracking */
+.trk{display:flex;gap:6px;margin:4px 0 18px}
+.trk i{flex:1;height:5px;border-radius:9px;background:var(--line);overflow:hidden;position:relative}
+.trk i.d{background:var(--accent)}
+.trk i.a::after{content:"";position:absolute;inset:0;background:var(--accent);animation:fill 2.2s ease-in-out infinite}
+@keyframes fill{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+.next li::before{background:var(--bg);box-shadow:inset 0 0 0 2px #CFCBC4}
+.next li.done::before{background:var(--accent);box-shadow:none}
+.next li.on::before{background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);animation:pulse 1.8s ease-in-out infinite}
+.next li:not(.done):not(.on) b{color:var(--mute)}
+
+/* fixes from the pre-presentation test run */
+.rail{scroll-padding-inline:22px}
+.gshot .shot{width:min(100%,max(0px,100cqh - 545px));margin-inline:auto}
+@container (max-height:640px){
+  h2{font-size:28px}
+  .gshot .shot{width:min(100%,max(0px,100cqh - 505px))}
+  .sty{margin-top:4px}.sty input{min-height:44px}.guests-tight{margin:0}
+  .count{margin:12px 0 2px}.count b{font-size:54px}.count button{width:48px;height:48px}
+  .gsub{margin-bottom:6px}.slide{margin-bottom:14px}
+  .hero.dark.plain h1{font-size:38px}.hero.dark.plain .cta{margin:24px 0 10px}
+}
+@container (max-height:585px){.gshot{display:none}}
+@container (max-height:540px){
+  .hero.dark.plain h1{font-size:32px}.hero.dark.plain .say{font-size:15px}.hero.dark.plain .fine{display:none}.hero.dark.plain .cta{padding:16px 48px}
+  .hero.dark.plain .hin{padding-top:56px}
+}
+.toast{bottom:88px} /* clear of the order bar and the swipe control */
+.rot{display:none}
+@media (orientation:landscape) and (max-height:480px) and (min-width:560px) and (max-width:960px){.rot{display:grid;position:fixed;inset:0;z-index:99;place-items:center;background:#141315;color:#fff;font-weight:700;font-size:20px;line-height:1.5;text-align:center;padding:24px}}
+
+/* ===== touch comfort ===== */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}            /* no double-tap zoom when tapping + quickly */
+*{-webkit-tap-highlight-color:transparent}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none} /* a long press never selects text or opens an image menu */
+input,select,textarea{-webkit-user-select:text;user-select:text;font-size:16px!important} /* 16px: phones do not zoom in when a field is focused */
+.upb input{font-size:0!important}
+.scr,.sheet>div{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.rail{overscroll-behavior-x:contain}
+/* the picture keeps one size: nothing shifts under the finger while scrolling */
+.stick .shot,.stick.mini .shot{width:min(100%,42cqh);transition:none}
+/* furniture follows the finger only in move mode */
+.grp .sp{touch-action:auto}
+.layer.mv,.layer.mv .sp{touch-action:none}
+.layer.mv{cursor:grab}
+.shot.moving{outline:3px solid var(--accent);outline-offset:-3px}
+.shot.moving::before{content:"";position:absolute;inset:0;z-index:2999;pointer-events:none;box-shadow:inset 0 0 0 3px var(--accent),inset 0 0 40px rgba(177,142,102,.55);border-radius:inherit}
+.ba{min-height:40px;padding:0 16px;font-size:13px}
+.ba::after{content:"";position:absolute;inset:-6px}                        /* a bigger target than the pill itself */
+.mvb{inset:12px 12px auto auto}
+.vzb{inset:auto auto 12px 12px}.vzb[disabled]{opacity:.8}
+.vtag{position:absolute;inset:12px 12px auto auto;z-index:3100;background:rgba(16,16,20,.72);color:#fff;font-size:12px;padding:6px 12px;border-radius:99px}
+.mvb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
+.live{display:none}
+/* comfortable targets */
+.pk,.rail .pk,.duo .pk{width:44px;height:44px}
+.rail .pk,.duo .pk{inset:76px auto auto 12px}
+.chipb{min-height:44px;padding:0 16px}
+.backb{width:44px;height:44px}
+.lnk{padding:13px 12px}
+.pk:active,.chipb:active,.ba:active,.backb:active,.count button:active{transform:scale(.92)}
+.itm:active{opacity:.6}
+.pk,.chipb,.ba,.backb,.count button,.itm{transition:transform .1s,opacity .1s,background .15s}
+/* sliders with a thumb a finger can hold */
+.slide input{-webkit-appearance:none;appearance:none;background:none;height:44px;margin:0}
+.slide input::-webkit-slider-runnable-track{height:6px;border-radius:9px;background:#D6D2CB}
+.slide input::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;margin-top:-13px;border-radius:50%;background:var(--accent);border:4px solid #fff;box-shadow:0 2px 8px rgba(31,31,31,.35)}
+.slide input::-moz-range-track{height:6px;border-radius:9px;background:#D6D2CB}
+.slide input::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--accent);border:4px solid #fff;box-shadow:0 2px 8px rgba(31,31,31,.35)}
+/* the sheet handle can be pulled down */
+.grab{width:auto;height:34px;margin:-10px -22px 2px;background:none;border-radius:0;display:grid;place-items:center;touch-action:none;cursor:grab}
+.grab::before{content:"";width:44px;height:5px;border-radius:9px;background:#D6D2CB}
+.knob{width:52px;height:50px}
+</style>
+</head>
+<body>
+<div class="rot" role="status">הדמו בנוי למסך אנכי.<br>סובבו את הטלפון.</div>
+<div class="stage">
+  <aside class="pitch">
+    <h1>תמונה אחת של המקום. <em>הצעת מחיר לאירוע.</em></h1>
+    <p>הלקוח מצלם את החלל, רואה אותו מרוהט בציוד של קיסר, ומזמין כמו שמזמינים משלוח.</p>
+    <ol><li><span>1</span>מצלמים</li><li><span>2</span>בוחרים</li><li><span>3</span>מזמינים</li></ol>
+    <div class="note">דמו קונספט, לא מוצר רשמי של קיסר אירועים. תמונות המוצרים מאתר קיסר. המחירים וההדמיה להמחשה בלבד.</div>
+  </aside>
+  <div class="phone">
+    <div class="top"><div class="brand">קיסר <i>סטודיו</i></div><span class="pill">דמו</span></div>
+    <main class="scr" id="scr"></main>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="sheet" id="sheet" onclick="if(event.target===this)closeSheet()"><div id="sheetBody" role="dialog" aria-label="פרטים"></div></div>
+  </div>
+</div>
+<script>
+const VAT=0.18,SEATS=8,MING=10,MAXG=+new URLSearchParams(location.search).get('maxg')||100,FALLBACK_MAX=64;
+const AR={"byron-q": 0.645, "byron-f": 0.594, "byron-b": 0.594, "zigi-q": 0.664, "zigi-f": 0.506, "zigi-b": 0.506, "nap-q": 0.552, "nap-f": 0.43, "nap-b": 0.43, "oak": 2.379, "oak-c": 2.379, "oval": 2.379, "oval-c": 2.379, "sofa": 2.336, "bar": 1.085, "xt": 2.162, "xt-c": 2.162, "hibar": 1.687, "rio-q": 0.661, "rio-f": 0.661, "rio-b": 0.661, "louis-q": 0.618, "louis-f": 0.618, "louis-b": 0.618, "knight": 2.126, "knight-c": 2.126, "napgold-q": 0.552, "napgold-f": 0.43, "napgold-b": 0.43, "napwal-q": 0.552, "napwal-f": 0.43, "napwal-b": 0.43, "napblk-q": 0.552, "napblk-f": 0.43, "napblk-b": 0.43, "sofam": 2.735, "umb": 0.969, "arm": 2.174, "coffee": 1.714, "round": 1.317, "round-c": 1.317, "counter": 1.871, "bed": 2.336, "pouf": 2.1};
+const AREAS={sharon:['השרון וקיסריה',300],center:['גוש דן והמרכז',350],jlm:['ירושלים והסביבה',450],far:['צפון / דרום',550]};
+// q = three-quarter product photo, f = straight-on product photo
+const P={
+ 'ch-byron':{n:'כיסא ביירון מושב שמנת',d:'עץ כהה, גב קלוע ומושב מרופד',s:'ביירון',p:18,q:'byron-q',f:'byron-f',b:'byron-b'},
+ 'ch-zigi':{n:'כיסא מתקפל זיגי',d:'עץ מתקפל עם קליעת חבל',s:'זיגי',p:12,q:'zigi-q',f:'zigi-f',b:'zigi-b'},
+ 'ch-nap':{n:'כיסא נפוליאון לבן',d:'לבן קלאסי עם כרית מושב',s:'נפוליאון',p:26,q:'nap-q',f:'nap-f',b:'nap-b'},
+ 'ch-napgold':{n:'כיסא נפוליאון זהב',d:'נפוליאון בגימור זהב עם כרית מושב',s:'נפוליאון זהב',p:28,q:'napgold-q',f:'napgold-f',b:'napgold-b'},
+ 'ch-napwal':{n:'כיסא נפוליאון עץ אגוז',d:'נפוליאון בגוון עץ אגוז טבעי',s:'נפוליאון אגוז',p:28,q:'napwal-q',f:'napwal-f',b:'napwal-b'},
+ 'ch-napblk':{n:'כיסא נפוליאון שחור',d:'נפוליאון שחור עם כרית פשתן שחורה',s:'נפוליאון שחור',p:28,q:'napblk-q',f:'napblk-f',b:'napblk-b'},
+ 'ch-rio':{n:'כיסא RIO בית קפה',d:'עץ עם מושב חבל קלוע, רוחב מושב 47 ס״מ',s:'RIO',p:22,q:'rio-q',f:'rio-f',b:'rio-b'},
+ 'ch-louis':{n:'כיסא לואי פשתן שמנת',d:'גב ומושב מרופדים, 52×60×99 ס״מ',s:'לואי',p:34,q:'louis-q',f:'louis-f',b:'louis-b'},
+ 'tb-oak':{n:'שולחן עץ אלון ענק',d:'עץ אלון מלא, עד 8 סועדים',s:'אלון',p:140,q:'oak'},
+ 'tb-x':{n:'שולחן אלון רגלי איקס שחור',d:'פלטת אלון על רגלי ברזל שחורות, עד 8 סועדים',s:'איקס',p:165,q:'xt'},
+ 'tb-knight':{n:'שולחן אלון פראי רגלי אבירים',d:'אלון פראי מבוקע, 2.2×1.0 מ׳, עד 8 סועדים',s:'אבירים',p:180,q:'knight'},
+ 'tb-oval':{n:'שולחן עץ אובלי מתקפל',d:'מתקפל, עד 8 סועדים, יפה עם מפה',s:'אובלי',p:55,q:'oval'},
+ 'tb-round':{n:'שולחן עגול 160 עם מפה',d:'קוטר 1.6 מ׳, 8 סועדים, מגיע עם מפה עד הרצפה',s:'עגול',p:70,q:'round',k:.7,cl:1},
+ sofam:{n:'ספת מיס M תלת בוקלה שמנת',d:'2.0 מ׳, שלושה מושבים, מסגרת עץ',s:'ספת בוקלה',p:380,q:'sofam'},
+ arm:{n:'זוג כורסאות מיס M בוקלה חום',d:'שתי כורסאות, 75 ס״מ כל אחת',s:'כורסאות',p:360,q:'arm'},
+ coffee:{n:'זוג שולחנות סלוני טיק',d:'עץ טיק מלא, קוטר 50 ס״מ',s:'שולחנות צד',p:160,q:'coffee'},
+ umb:{n:'שמשיה שמנת עם פרנזים',d:'קוטר 2.7 מ׳, גובה 2.4 מ׳, עם בסיס',s:'שמשיה',p:220,q:'umb'},
+ pouf:{n:'זוג הדומים קטיפה אפור',d:'שני הדומים מרובעים, 40×40 ס״מ',s:'הדומים',p:90,q:'pouf'},
+ counter:{n:'קאונטר עץ אינדונזי',d:'משטח עץ על רגלי גזע, 2.0×0.4 מ׳, גובה 0.9',s:'קאונטר',p:290,q:'counter'},
+ bed:{n:'מיטת בריכה לבנה לונה',d:'מיטת שיזוף מעוצבת, 1.93 מ׳',s:'מיטת בריכה',p:180,q:'bed'},
+ sofa:{n:'ספה מודולרית מייזי שמנת',d:'שלושה מושבים, בד בהיר',s:'ספה',p:320,q:'sofa'},
+ hibar:{n:'שולחן בר מילאנו עם 2 כיסאות בר',d:'שולחן עגול גבוה מאלון וכיסאות קרוס בר',s:'שולחן בר',p:240,q:'hibar'},
+ bar:{n:'בר משקאות כפרי',d:'עץ כפרי, עמדת הגשה אחת',s:'בר',p:450,q:'bar'},
+ cloth:{n:'מפה לשולחן',d:'מפה לכל שולחן, בצבע לבחירה',s:'מפות',p:25,q:'oval-c'},
+ dish:{n:'סט כלים לסועד',d:'סט אחד לכל אורח',s:'כלי אוכל',p:14},
+ crew:{n:'צוות סידור במקום',d:'נושאים את הציוד מהמשאית ומסדרים לפי התמונה',s:'צוות סידור'}
+};
+// The setup crew costs 15 per guest and never less than 800. The customer sees only the total, never the per-guest rate.
+const priceOf=id=>id==='crew'?(15*S.guests<=800?800:Math.ceil(15*S.guests/250)*250):P[id].p; // above the minimum the price climbs in steps of 250
+const CHAIRS=['ch-byron','ch-zigi','ch-rio','ch-louis','ch-nap','ch-napgold','ch-napwal','ch-napblk'],TABLES=['tb-oak','tb-x','tb-knight','tb-oval','tb-round'],EXTRAS=['sofa','bar','hibar','sofam','arm','coffee','umb','pouf','counter','bed'];
+// The lounge pieces added later: [floor width used for placing in meters, drawn width in meters, where it stands when the photo could not be read]
+const MORE={sofam:[2,2,[70,47,18]],arm:[1.8,1.8,[30,47,15]],coffee:[1.2,1.2,[20,53,9]],umb:[1.4,2.7,[12,60,20]],pouf:[1,1,[60,54,8]],counter:[2,2,[50,44,16]],bed:[1.9,1.9,[82,60,16]]};
+const src=(k,z)=>`f-${k}-${z||'sun'}.webp`;
+// The customer's own words about the event choose the starting furniture. In the product the model reads the text; here a few key words stand in for it.
+const STYLES={
+ greek:{n:'יווני',k:['יווני','יוון','greek','ים תיכוני','לבן'],chair:'ch-nap',table:'tb-oval',cloth:true,x:{sofa:false,bar:true,hibar:true,umb:true}},
+ boho:{n:'בוהו שיק',k:['בוהו','הובו','boho','שיק'],chair:'ch-zigi',table:'tb-oak',cloth:false,x:{sofa:true,bar:false,hibar:true,arm:true,coffee:true}},
+ rustic:{n:'כפרי',k:['כפרי','טבע','חצר','rustic'],chair:'ch-rio',table:'tb-x',cloth:false,x:{sofa:false,bar:true,hibar:true}},
+ classic:{n:'קלאסי',k:['קלאסי','אלגנט','חגיגי','classic'],chair:'ch-louis',table:'tb-knight',cloth:true,x:{sofa:false,bar:true,hibar:false,sofam:true,arm:true}}
+};
+const styleOf=()=>{const t=(S.style||'').toLowerCase();return Object.keys(STYLES).find(k=>STYLES[k].k.some(w=>t.includes(w)))||null};
+function markStyle(){const k=styleOf();document.querySelectorAll('.styc .chipb').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k))}
+function applyStyle(){const v=STYLES[styleOf()];if(!v)return;S.pick={table:v.table,chair:v.chair,x:{...v.x}};S.add.cloth=v.cloth}
+// ---- the hosted app talks to our own server: real sign-up, saved orders, usage events. On the demo link none of this runs.
+const API='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/api',LIVE=/(^|\.)github\.io$|keisar/.test(location.hostname)||new URLSearchParams(location.search).get('live')==='1';
+const SID=Math.random().toString(36).slice(2,12);let TICKET='';
+const call=(action,body)=>fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,session:SID,ticket:TICKET||undefined,...body})}).then(async r=>({ok:r.ok,status:r.status,d:await r.json().catch(()=>({}))}));
+const track=(name,props)=>{if(LIVE)call('event',{name,props}).catch(()=>{})};
+// Names, prices and what is on offer come from the catalog Caesar's staff edit; the pictures stay with the app.
+if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=id,name,description,price_ils,active',{headers:{apikey:'sb_publishable_194S1a54eAtumboQ1UBBrA_k11UDLzD'}}).then(r=>r.ok?r.json():[]).then(rows=>{
+  if(!Array.isArray(rows)||!rows.length)return;const on=new Set(rows.map(r=>r.id));
+  for(const r of rows)if(P[r.id]){P[r.id].n=r.name;if(r.description)P[r.id].d=r.description;if(r.id!=='crew')P[r.id].p=r.price_ils}
+  for(const L of[CHAIRS,TABLES,EXTRAS,ADDS])for(let i=L.length-1;i>=0;i--)if(!on.has(L[i])&&(L.length>1||L===EXTRAS||L===ADDS))L.splice(i,1); // a product switched off disappears; one chair and one table always remain
+  if(!CHAIRS.includes(S.pick.chair))S.pick.chair=CHAIRS[0];if(!TABLES.includes(S.pick.table))S.pick.table=TABLES[0];
+  for(const k of['cloth','dish','crew'])if(!on.has(k))S.add[k]=false;
+  render()}).catch(()=>{});
+async function join(){const v=$('em').value.trim(),t=$('ph').value.trim();S.phone=t;if(!v){toast('הקלידו מייל כדי להמשיך');$('em').focus();return}if(!t){S.user=null;toast('הקלידו טלפון כדי להמשיך');$('ph').focus();return}
+  if(LIVE){if(S.busy)return;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v)){toast('המייל לא נראה תקין');$('em').focus();return}
+    if(!/^\+?\d{9,15}$/.test(t.replace(/[^\d+]/g,''))){toast('הטלפון לא נראה תקין');$('ph').focus();return}
+    S.busy=true;let r=null;try{r=await call('join',{email:v,phone:t})}catch(e){}S.busy=false;
+    if(!r){toast('אין חיבור. נסו שוב');return}
+    if(!r.ok||!r.d.ticket){toast(r.d.error==='email'?'המייל לא נראה תקין':r.d.error==='phone'?'הטלפון לא נראה תקין':r.status===429?'יותר מדי ניסיונות היום. נסו מחר':'ההרשמה לא הצליחה. נסו שוב');return}
+    TICKET=r.d.ticket}
+  S.user=v;go('photo')}
+const COLORS={white:['לבן','#F4EFE6'],sand:['חול','#CDB38A'],sage:['ירוק מרווה','#8FA67A'],blue:['כחול','#4F78A8'],pink:['ורוד עתיק','#D4938E'],black:['שחור','#2A2A2A']};
+const tint=id=>S.col[id]==='white'?'':'-'+S.col[id],nameOf=id=>P[id].n+(S.col[id]&&S.col[id]!=='white'?' · '+COLORS[S.col[id]][0]:'');
+const swatches=id=>`<div class="sw" role="radiogroup" aria-label="צבע">${Object.entries(COLORS).map(([k,[n,c]])=>`<button role="radio" aria-label="${n}" aria-checked="${S.col[id]===k}" style="--c:${c}" onclick="pickColor('${id}','${k}')"></button>`).join('')}<small>${COLORS[S.col[id]][0]}</small></div>`;
+function pickColor(id,k){S.col[id]=k;if(k!=='white')for(const q of id==='sofa'?['sofa']:['oak-c','oval-c','xt-c','knight-c'])for(const v of['sun','far']){const im=new Image();im.src=src(q+'-'+k,v);warm.push(im)}keep()}
+const fresh=()=>({table:TABLES.includes('tb-oak')?'tb-oak':TABLES[0],chair:CHAIRS.includes('ch-byron')?'ch-byron':CHAIRS[0],x:{sofa:true,bar:true,hibar:true}});
+const S={scr:'home',made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',user:null,phone:'',style:'',hinted:false,delta:0,before:false,anim:false};
+const $=id=>document.getElementById(id);
+const nis=n=>'₪'+Math.round(n).toLocaleString('he-IL');
+const plan=()=>S.photo?S.plan:SAMPLE;
+const cap=()=>S.photo&&!S.made?MAXG:plan()?Math.min(MAXG,plan().cap):FALLBACK_MAX; // before the photo is read, any number can be asked for
+const clampG=n=>Math.min(cap(),Math.max(MING,Math.round(n)));
+const fits=k=>!plan()||!!plan()[k]; // is there floor for this extra in the customer's photo
+const nTables=()=>Math.ceil(S.guests/SEATS);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2400)}
+
+// Everything drawn in the picture, and nothing else. The quote is this same list.
+function pictured(){
+  const p=S.pick,c={};c[p.table]=nTables();c[p.chair]=S.guests;
+  for(const k of EXTRAS)if(p.x[k]&&fits(k))c[k]=1;
+  if(S.add.cloth)c.cloth=nTables();
+  return c;
+}
+function lines(){ // first what is in the picture, then the add-ons that are not drawn
+  if(!S.made)return[];
+  const out=Object.entries(pictured()).map(([id,q])=>({id,q}));
+  if(S.add.dish)out.push({id:'dish',q:S.guests});
+  if(S.add.crew)out.push({id:'crew',q:1});
+  return out;
+}
+function totals(){
+  const L=lines(),sub=L.reduce((a,l)=>a+priceOf(l.id)*l.q,0),del=sub?AREAS[S.area][1]:0,vat=Math.round((sub+del)*VAT);
+  return{sub,del,vat,total:sub+del+vat,items:L.reduce((a,l)=>a+l.q,0)};
+}
+
+// Rows of tables on the floor, front to back: [base y %, table width %, spacing %, vertical squash]
+const ROWS=[[68,36.3,43,1],[57.5,23.5,30.5,.94],[51.5,16.5,23.5,.9]];
+const LAYOUT={1:[1],2:[2],3:[1,2],4:[2,2],5:[2,3],6:[2,2,2],7:[2,3,2],8:[2,3,3]};
+// Seats around one table: [dx in table widths, dy in table heights from its base, product view, mirrored, scale, depth].
+// Order of filling: far side, both ends, near side.
+const SEATS_AT={
+ 'tb-oak':[[-.344,-.36,'f',0,.93,-2],[-.11,-.40,'f',0,.93,-2],[.124,-.43,'f',0,.93,-2],[-.53,-.135,'q',0,1,1],[.47,-.30,'q',1,.97,-1],[-.212,.04,'b',0,1.05,2],[.055,-.02,'b',0,1.05,2],[.322,-.08,'b',0,1.05,2]],
+ 'tb-x':[[-.36,-.40,'f',0,.93,-2],[-.12,-.45,'f',0,.93,-2],[.12,-.50,'f',0,.93,-2],[-.53,-.16,'q',0,1,1],[.47,-.36,'q',1,.97,-1],[-.20,.04,'b',0,1.05,2],[.06,-.03,'b',0,1.05,2],[.32,-.10,'b',0,1.05,2]],
+ 'tb-knight':[[-.36,-.40,'f',0,.93,-2],[-.12,-.45,'f',0,.93,-2],[.12,-.50,'f',0,.93,-2],[-.53,-.16,'q',0,1,1],[.47,-.36,'q',1,.97,-1],[-.20,.04,'b',0,1.05,2],[.06,-.03,'b',0,1.05,2],[.32,-.10,'b',0,1.05,2]],
+ 'tb-oval':[[-.26,-.37,'f',0,.93,-2],[0,-.41,'f',0,.93,-2],[.26,-.37,'f',0,.93,-2],[-.57,-.15,'q',0,1,1],[.57,-.15,'q',1,1,1],[-.26,.07,'b',0,1.05,2],[0,.106,'b',0,1.05,2],[.26,.07,'b',0,1.05,2]],
+ // round: eight chairs on a ring 1.1 m from the middle; filled back, front, sides, then the diagonals
+ 'tb-round':[270,90,180,0,225,315,135,45].map(a=>{const r=a*Math.PI/180,s=Math.sin(-r),c=Math.cos(r);return[.69*c,-.227+.313*s,s<-.3?'f':s>.3?'b':'q',c>0&&Math.abs(s)<=.3?1:0,s<-.3?.93:s>.3?1.05:1,s<-.3?-2:s>.3?2:1]})
+};
+// ---- reading the customer's photo -------------------------------------------------------------
+// Claude looks at the photo and returns where the free floor is and how big it really is.
+const ASK=`You are helping place rental event furniture into a photo of an empty space. The image is square.
+Give every position as percentages: x from the left edge (0-100), y from the top edge (0-100).
+Return ONLY a JSON object with these keys:
+"usable": true or false (false if no free floor is visible),
+"reason": one short Hebrew sentence, only when usable is false,
+"horizon": the y of the camera's eye-level line, where receding floor lines would meet (may be below 0 or above 100),
+"floor": {"farLeft":[x,y],"farRight":[x,y],"nearRight":[x,y],"nearLeft":[x,y]} - the largest free, empty, walkable floor area where banquet tables could stand, as a four-corner shape. Near corners may sit on the bottom edge (y=100). Do not include walls, furniture or planted areas.
+"farWidthM": the real-world distance in meters between farLeft and farRight. Judge it from objects of known size (a door is about 2 m tall, a chair 0.9 m, a person 1.7 m, floor tiles).
+"brightness": light on the floor, from 0.5 (dim indoor) to 1.0 (bright daylight),
+"shadow": the direction in which objects cast shadows on the ground, as seen in the image: "left", "right", "toward" (toward the camera), "away", or "none" when there are no clear shadows,
+"place": two to four Hebrew words naming the space.`;
+let sampler;
+async function getSampler(){
+  if(sampler!==undefined)return sampler;
+  try{sampler=(window.claude&&claude.use)?await claude.use('sample'):null;if(sampler){const l=await sampler.limits();if(!l||!l.images)sampler=null}}catch(e){sampler=null}
+  return sampler;
+}
+const num=v=>typeof v==='number'&&isFinite(v);
+function makePlan(v){ // turn Claude's answer into table positions; null when the answer cannot be used
+  try{
+    if(!v||typeof v!=='object')return null;
+    if(v.usable===false)return{usable:false,reason:typeof v.reason==='string'?v.reason.slice(0,120):''};
+    const f=v.floor,pt=a=>Array.isArray(a)&&num(a[0])&&num(a[1])?{x:Math.min(100,Math.max(0,a[0])),y:Math.min(100,Math.max(0,a[1]))}:null;
+    const fl=pt(f.farLeft),fr=pt(f.farRight),nr=pt(f.nearRight),nl=pt(f.nearLeft);if(!fl||!fr||!nr||!nl)return null;
+    const yf=(fl.y+fr.y)/2,yn=Math.min(100,(nl.y+nr.y)/2),W=num(v.farWidthM)?Math.min(40,Math.max(1.5,v.farWidthM)):6;
+    if(fr.x-fl.x<8||yn-yf<8)return null;
+    let h=num(v.horizon)?v.horizon:yf-12;if(h>yf-3)h=yf-10;
+    const mFar=(fr.x-fl.x)/W,ppm=y=>mFar*(y-h)/(yf-h),yAt=pp=>h+pp*(yf-h)/mFar;
+    const edge=(a,b,y)=>a.x+(b.x-a.x)*Math.min(1,Math.max(0,(y-yf)/(yn-yf)));
+    const rowAt=y=>{const w=2*ppm(y),th=w/2.38,L=edge(fl,nl,y)+.12*w,R=edge(fr,nr,y)-.12*w,avail=R-L;
+      if(y-.45*th<yf-1.5||avail<.95*w)return null;return{y,w,sp:w*1.3,cx:(L+R)/2,n:Math.min(14,Math.max(1,Math.floor((avail+.1*w)/(1.3*w))))}};
+    const rows=[];let y=yn-5,first=null;
+    for(;y>yf+3;y-=1){first=rowAt(y);if(first)break}
+    if(first){rows.push(first);let d=77/ppm(first.y);
+      for(let k=0;k<14;k++){d+=2.5;const r=rowAt(yAt(77/d));if(!r)break;rows.push(r)}}
+    else{const ym=yf+(yn-yf)*.55,L=edge(fl,nl,ym),R=edge(fr,nr,ym),w=(R-L)*.8;rows.push({y:ym,w,sp:w*1.3,cx:(L+R)/2,n:1})} // too tight for a full-size table: one table, sized to the space
+    if(rows[0].w<4)return null;
+    // Bar and sofa stand next to a row of tables, at that row's depth, so they are drawn at the same scale as the tables.
+    const BAR=1.15,SOFA=2, // drawn widths in meters of floor, matched to the tables' scale
+      span=y=>[Math.max(1,edge(fl,nl,y)),Math.min(99,edge(fr,nr,y))];
+    const beside=(r,wM,side,off=0)=>{const w=wM*ppm(r.y),[L,R]=span(r.y),half=r.n*r.sp/2+.14*r.w,x=r.cx+side*(half+.2*r.w+off*ppm(r.y)+w/2);return x-w/2>=L&&x+w/2<=R?[x,r.y,w]:null};
+    // Prefer a row a little way back; if its sides are full, give up one or two of its tables to make room.
+    let bar=null,sofa=null,hibar=null;const HB=1.9; // the bar-height table with its stools stands just outside the bar
+    all3:for(const give of[0,1,2,3])for(const i of[1,2,3,0]){const r=rows[i];if(!r||r.n-give<1)continue;
+      const keep=r.n;r.n-=give;const b=beside(r,BAR,-1),so=beside(r,SOFA,1),hb=beside(r,HB,-1,BAR+.45);
+      if(b&&so&&hb){bar=b;sofa=so;hibar=hb;break all3}
+      r.n=keep}
+    if(!hibar)search:for(const give of[0,1,2])for(const i of[1,2,3,0]){const r=rows[i];if(!r||r.n-give<1)continue;
+      const keep=r.n;r.n-=give;const b=beside(r,BAR,-1),so=beside(r,SOFA,1);
+      if(b&&so){bar=b;sofa=so;break search}
+      r.n=keep}
+    if(!bar||!sofa){ // no room at the sides: stand them behind the last row
+      const last=rows[rows.length-1],yb=yAt(77/(77/ppm(last.y)+3)),pb=ppm(yb),[L,R]=span(yb),need=k=>k*pb;
+      if(yb>=yf+.5){
+        if(!bar&&!sofa&&R-L>=need(BAR+SOFA+.6)){const x0=Math.min(R-need(BAR+SOFA+.6),Math.max(L,last.cx-need(BAR+SOFA+.6)/2));bar=[x0+need(BAR)/2,yb,need(BAR)];sofa=[x0+need(BAR+.6)+need(SOFA)/2,yb,need(SOFA)]}
+        else if(!bar&&R-L>=need(BAR))bar=[Math.min(R-need(BAR)/2,Math.max(L+need(BAR)/2,last.cx)),yb,need(BAR)];
+        else if(!sofa&&bar&&R-L>=need(SOFA))sofa=[Math.min(R-need(SOFA)/2,Math.max(L+need(SOFA)/2,last.cx)),yb,need(SOFA)];
+      }
+    }
+    // The bar-height table stands beside another row, or just outside the bar or the sofa; never where it would touch them.
+    const clear=c=>c&&[bar,sofa].every(o=>!o||Math.abs(o[1]-c[1])>.5||Math.abs(o[0]-c[0])>(o[2]+c[2])/2+.3*ppm(c[1]));
+    for(const i of[2,1,3,0,4]){const r=rows[i];if(!r||hibar)continue;for(const side of[1,-1]){const c=beside(r,HB,side);if(clear(c)){hibar=c;break}}}
+    if(!hibar)for(const[o,side]of[[bar,-1],[sofa,1]]){if(!o||hibar)continue;const w=HB*ppm(o[1]),[L,R]=span(o[1]),x=o[0]+side*(o[2]/2+.4*ppm(o[1])+w/2);if(x-w/2>=L&&x+w/2<=R)hibar=[x,o[1],w]}
+    // The other lounge pieces: beside a row that still has a free side, else just outside a piece already standing.
+    const more={},placed=[bar,sofa,hibar].filter(Boolean),dep=y=>77/ppm(y),
+      free=c=>c&&placed.every(o=>Math.abs(dep(o[1])-dep(c[1]))>1.2||Math.abs(o[0]-c[0])>(o[2]+c[2])/2+.3*ppm(c[1])),
+      offTables=c=>rows.every(r=>Math.abs(dep(r.y)-dep(c[1]))>1.2||Math.abs(c[0]-r.cx)>r.n*r.sp/2+c[2]/2);
+    for(const k in MORE){const wM=MORE[k][0];let c=null;
+      find:for(const give of[0,1,2])for(const i of[2,3,1,0,4]){const r=rows[i];if(!r||r.n-give<1||(give&&i===0))continue;const keep=r.n;r.n-=give; // the front row keeps its tables; as with the bar: a row may give up a table or two to make room
+        for(const side of[1,-1]){const t=beside(r,wM,side);if(free(t)){c=t;break find}}r.n=keep}
+      if(!c)for(const o of placed){for(const side of[1,-1]){const w=wM*ppm(o[1]),[L,R]=span(o[1]),t=[o[0]+side*(o[2]/2+.4*ppm(o[1])+w/2),o[1],w];if(t[0]-w/2>=L&&t[0]+w/2<=R&&free(t)&&offTables(t)){c=t;break}}if(c)break}
+      if(c){more[k]=c;placed.push(c)}}
+    return{...more,usable:true,rows,h,yf,yn,hibar,shadow:['left','right','toward'].includes(v.shadow)?v.shadow:null,cap:rows.reduce((a,r)=>a+r.n,0)*SEATS,bright:num(v.brightness)?Math.min(1.08,Math.max(.6,.45+.6*v.brightness)):1,bar,sofa,place:typeof v.place==='string'?v.place.slice(0,40):''};
+  }catch(e){return null}
+}
+async function askPlan(){
+  const s=await getSampler();if(!s||!S.blob)return null;
+  try{return makePlan(await Promise.race([s.json(ASK,{images:[S.blob],cache:true}),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),40000))]))}catch(e){return null}
+}
+// The sample place, measured by hand from its photo: eye level, the lawn and path in front of the building, and their real width.
+const SAMPLE=makePlan({usable:true,horizon:56,floor:{farLeft:[33,64],farRight:[100,64],nearRight:[100,100],nearLeft:[8,100]},farWidthM:22,brightness:1,shadow:'right',place:'מדשאה מול וילה'});
+function slots(nT){ // [cx, y, width, squash] for each table, front to back
+  const out=[];
+  const pl=plan();if(pl){
+    let R=0,sum=0;while(R<pl.rows.length&&sum<nT)sum+=pl.rows[R++].n;
+    const k=pl.rows.slice(0,R).map(r=>Math.min(r.n,Math.floor(nT*r.n/sum)));let left=Math.min(nT,sum)-k.reduce((a,b)=>a+b,0);
+    for(let pass=0;left>0&&pass<20;pass++)for(let r=0;r<R&&left>0;r++)if(k[r]<pl.rows[r].n){k[r]++;left--}
+    pl.rows.slice(0,R).forEach((r,ri)=>{for(let i=0;i<k[ri];i++)out.push([r.cx+(i-(k[ri]-1)/2)*r.sp,r.y,r.w,1])});
+    return out}
+  LAYOUT[nT].forEach((k,r)=>{const[y,w,sp,sy]=ROWS[r];for(let i=0;i<k;i++)out.push([50+(i-(k-1)/2)*sp,y,w,sy])});
+  return out;
+}
+const SHADOW={left:[35,-.28],right:[-35,-.28],toward:[0,-.38]};
+function sprites(){
+  const p=S.pick,T=P[p.table],C=P[p.chair],nT=nTables(),base=Math.floor(S.guests/nT),extra=S.guests%nT,c=pictured(),pl=plan(),lite=S.guests>96;
+  const cast=!lite&&pl&&SHADOW[pl.shadow]; // a real cast shadow only when we know where the sun is
+  const tKey=T.q+(S.add.cloth?'-c':'');const far0=w=>w<11;
+  const sp=(id,key,cx,y,w,far,o={})=>{const u=src(key,far?'far':'sun');return `<div class="sp ${cast?'sun':'soft'}${o.fl?' fl':''}" data-id="${id}" style="left:${cx.toFixed(2)}%;bottom:${(100-y).toFixed(2)}%;width:${w.toFixed(2)}%;z-index:${10+(o.z||0)};--sy:${o.sy||1}">${cast?`<img class="sh" src="${u}" alt="">`:''}<img src="${u}" alt="" draggable="false"></div>`};
+  // one group per table (with its chairs), one for the bar, one for the sofa: a group is what the customer drags
+  const grp=(key,cx,y,inner)=>{const m=S.mv[key],x2=m?m[0]:cx,y2=m?m[1]:y,k=pl&&m?Math.max(.25,(y2-pl.h)/(y-pl.h)):1;
+    return `<div class="grp" data-g="${key}" data-cx="${cx.toFixed(2)}" data-cy="${y.toFixed(2)}" style="z-index:${Math.round(y2*10)};transform-origin:${cx.toFixed(2)}% ${y.toFixed(2)}%;transform:translate(${(x2-cx).toFixed(2)}%,${(y2-y).toFixed(2)}%) scale(${k.toFixed(3)})">${inner}</div>`};
+  const out=[];
+  if(c.bar){const[x,y,w]=pl?pl.bar:[8.5,49,13];out.push(grp('bar',x,y,sp('bar','bar',x,y,w,w<6.5)))}
+  if(c.sofa){const[x,y,w]=pl?pl.sofa:[88,50.8,20];out.push(grp('sofa',x,y,sp('sofa','sofa'+tint('sofa'),x,y,w,w<11)))}
+  if(c.hibar){const[x,y,w]=pl?pl.hibar:[50,46.5,12];out.push(grp('hibar',x,y,sp('hibar','hibar',x,y,w,w<10.5)))}
+  for(const k in MORE)if(c[k]){const[x,y,w]=pl?pl[k]:MORE[k][2],dw=pl?w*MORE[k][1]/MORE[k][0]:w;out.push(grp(k,x,y,sp(k,P[k].q,x,y,dw,w<8)))}
+  slots(nT).forEach(([cx,y,w0,sy],t)=>{
+    const w=w0*(T.k||1),th=w/AR[T.q]*sy,hc=w0*.34,n=base+(t<extra?1:0),far=far0(w0);let inner='';
+    for(let i=0;i<n;i++){const[dx,dy,v,fl,sc,dz]=SEATS_AT[p.table][i];inner+=sp(p.chair,C[v],cx+dx*w,y+dy*th,hc*sc*AR[C[v]],far,{fl,z:dz})}
+    out.push(grp('t'+t,cx,y,inner+sp(p.table,tKey+(tKey.endsWith('-c')?tint('cloth'):''),cx,y,w,far,{sy})));
+  });
+  return out.join('');
+}
+// ---- dragging a table, the bar or the sofa. Moving it deeper into the picture makes it smaller, as it would really look.
+let drag=null;
+function toggleMove(){S.move=!S.move;keep();if(S.move)toast('גררו שולחן, ספה או בר למקום חדש')}
+document.addEventListener('pointerdown',e=>{
+  if(S.before||S.scr!=='result'||!e.target.closest)return;
+  let g=null;
+  if(S.move){ // the nearest piece to the finger, so small far-away pieces are easy to grab
+    const lay=e.target.closest('#layer');if(!lay)return;let best=1e9;
+    for(const c of lay.querySelectorAll('.grp')){const r=c.lastElementChild.getBoundingClientRect(),dx=Math.max(r.left-e.clientX,0,e.clientX-r.right),dy=Math.max(r.top-e.clientY,0,e.clientY-r.bottom),out=Math.hypot(dx,dy);
+      if(out>56)continue;const sc=out*3+Math.hypot((r.left+r.right)/2-e.clientX,(r.top+r.bottom)/2-e.clientY);if(sc<best){best=sc;g=c}}
+  }else if(e.pointerType==='mouse'){const sp=e.target.closest('#layer .sp');if(sp)g=sp.closest('.grp')} // with a mouse there is nothing to confuse a drag with
+  if(!g)return;
+  const r=g.closest('.shot').getBoundingClientRect(),m=S.mv[g.dataset.g];
+  drag={g,r,sx:e.clientX,sy:e.clientY,cx:+g.dataset.cx,cy:+g.dataset.cy,x0:m?m[0]:+g.dataset.cx,y0:m?m[1]:+g.dataset.cy,moved:false,hw:Math.min(45,parseFloat(g.lastElementChild.style.width)/2||3),scale:S.photo&&!S.plan?S.fit/100:1};
+  try{e.target.setPointerCapture(e.pointerId)}catch(_){}
+  g.classList.add('drag');e.preventDefault();
+});
+document.addEventListener('pointermove',e=>{
+  if(!drag)return;const pl=plan(),d=drag;
+  const y=Math.min(99,Math.max(pl?pl.yf+1:40,d.y0+(e.clientY-d.sy)/d.r.height*100/d.scale)),k=pl?Math.max(.25,(y-pl.h)/(d.cy-pl.h)):1,hw=Math.min(48,d.hw*k),
+    x=Math.min(100-hw,Math.max(hw,d.x0+(e.clientX-d.sx)/d.r.width*100/d.scale)); // the piece itself stays inside the picture
+  if(Math.abs(e.clientX-d.sx)+Math.abs(e.clientY-d.sy)>4)d.moved=true;
+  d.x=x;d.y=y;
+  d.g.style.transform=`translate(${(x-d.cx).toFixed(2)}%,${(y-d.cy).toFixed(2)}%) scale(${k.toFixed(3)})`;d.g.style.zIndex=Math.round(y*10);
+});
+// Footprints on the floor in meters [width, depth]: a table with its chairs, the bar, the sofa.
+const FOOT={t:[2.4,2],bar:[1.15,.7],sofa:[2,.9],hibar:[1.9,.8],sofam:[2,.8],arm:[1.8,.8],coffee:[1.2,.6],umb:[1.4,1],pouf:[1,.5],counter:[2,.5],bed:[1.9,.8]};
+function blocked(key,x,y){ // would this spot put the piece on top of another one? compared on the floor, not on the screen
+  const pl=plan();if(!pl||!pl.rows[0])return false;
+  const r=pl.rows[0],ppm=v=>r.w/2*(v-pl.h)/(r.y-pl.h),fl=(a,b)=>[(a-50)/ppm(b),77/ppm(b)],kind=k=>FOOT[k[0]==='t'?'t':k],[X,Z]=fl(x,y),[w,dp]=kind(key);
+  for(const g of document.querySelectorAll('#layer .grp')){const k=g.dataset.g;if(k===key)continue;
+    const m=S.mv[k]||[+g.dataset.cx,+g.dataset.cy],[X2,Z2]=fl(m[0],m[1]),[w2,d2]=kind(k);
+    if(Math.abs(X-X2)<(w+w2)/2&&Math.abs(Z-Z2)<(dp+d2)/2)return true}
+  return false;
+}
+const endDrag=()=>{if(!drag)return;const d=drag,key=d.g.dataset.g;drag=null;d.g.classList.remove('drag');
+  if(d.moved&&d.x!==undefined){if(blocked(key,d.x,d.y)){keep();toast('יש שם כבר רהיט. נסו מקום פנוי.')}else{S.mv[key]=[d.x,d.y];keep()}}};
+// ---- swipe to order: the knob has to travel most of the track, so an order is never placed by a stray tap
+let sw=null;
+document.addEventListener('pointerdown',e=>{const k=e.target.closest&&e.target.closest('.knob');if(!k)return;
+  sw={k,max:k.parentElement.getBoundingClientRect().width-k.offsetWidth-8,sx:e.clientX,d:0};try{k.setPointerCapture(e.pointerId)}catch(_){}
+  k.style.transition='none';e.preventDefault()});
+document.addEventListener('pointermove',e=>{if(!sw)return;sw.d=Math.min(sw.max,Math.max(0,sw.sx-e.clientX));sw.k.style.transform=`translateX(${-sw.d}px)`;sw.k.parentElement.style.setProperty('--p',(sw.d/sw.max).toFixed(3))});
+const endSw=()=>{if(!sw)return;const v=sw;sw=null;v.k.style.transition='';
+  if(v.d>v.max*.85)placeOrder();else if(v.d<6)toast('מחליקים את העיגול שמאלה כדי להזמין');
+  const k=$('knob');if(k){k.style.transform='';k.parentElement.style.setProperty('--p',0)}};
+document.addEventListener('pointerup',endSw);document.addEventListener('pointercancel',endSw);
+document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
+function resetMoves(){S.mv={};keep();toast('חזרנו לסידור המקורי')}
+const baseImg=()=>S.photo?`<img src="${S.photo}" alt="התמונה שלכם">`:'<img src="before.jpg" alt="מדשאה ושביל מרוצף מול מבנה אבן">';
+const fitCss=()=>{const pl=plan(),sh=pl&&SHADOW[pl.shadow]?`--shx:${SHADOW[pl.shadow][0]}deg;--shy:${SHADOW[pl.shadow][1]};`:'';return sh+(!S.photo?'':S.plan?`filter:brightness(${S.plan.bright});`:`transform-origin:50% 100%;transform:scale(${S.fit/100});`)};
+// ---- the realistic picture: our own paste-up goes to /visualize, which returns a photographic version of the same scene.
+// The button exists only when the server says a real image engine is connected, so without one nothing changes.
+const VIZ='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/visualize',VZ={on:false,busy:false,img:'',key:''};
+const vizKey=()=>JSON.stringify([S.photo?S.photo.length:0,S.guests,S.pick,S.add,S.col,S.mv]);
+const vizShown=()=>VZ.img&&VZ.key===vizKey();
+fetch(VIZ).then(r=>r.json()).then(d=>{VZ.on=!!d&&d.provider&&d.provider!=='mock';if(VZ.on&&S.scr==='result')keep()}).catch(()=>{});
+function pasteUp(){ // draw the picture on screen (photo + furniture, in the same order) into one image
+  const sh=document.querySelector('.stick .shot')||document.querySelector('.shot'),ly=$('layer');if(!sh||!ly)return null;
+  const n=1280,b=sh.getBoundingClientRect(),k=n/b.width,c=document.createElement('canvas');c.width=c.height=n;const x=c.getContext('2d'),base=sh.querySelector('img');
+  const m=Math.min(base.naturalWidth,base.naturalHeight);x.drawImage(base,(base.naturalWidth-m)/2,(base.naturalHeight-m)/2,m,m,0,0,n,n);
+  if(S.photo&&S.plan&&S.plan.bright)x.filter=`brightness(${S.plan.bright})`;
+  for(const sp of ly.querySelectorAll('.sp')){const im=sp.querySelector('img:not(.sh)');if(!im||!im.complete||!im.naturalWidth)continue;
+    const r=im.getBoundingClientRect(),X=(r.left-b.left)*k,Y=(r.top-b.top)*k,W=r.width*k,H=r.height*k;
+    if(sp.classList.contains('fl')){x.save();x.translate(X+W,Y);x.scale(-1,1);x.drawImage(im,0,0,W,H);x.restore()}else x.drawImage(im,X,Y,W,H)}
+  return c.toDataURL('image/jpeg',.9).split(',')[1];
+}
+async function realistic(){
+  if(VZ.busy)return;if(vizShown()){VZ.img='';keep();return}
+  let pic;try{pic=pasteUp()}catch(e){pic=null}if(!pic){toast('לא הצלחנו להכין את התמונה. נסו שוב');return}
+  const key=vizKey(),pl=plan()||{};VZ.busy=true;keep();
+  try{const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({composite:pic,mime:'image/jpeg',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
+    if(r.status===429)toast('הגענו למכסת התמונות להיום. נסו מחר');
+    else if(!r.ok||!d.image||d.provider==='mock')toast('התמונה המציאותית לא זמינה כרגע');
+    else{VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key}
+  }catch(e){toast('אין חיבור. נסו שוב')}
+  VZ.busy=false;if(S.scr==='result')keep();
+}
+function shot(mode){ // 'empty' | 'full' | 'toggle'
+  if(mode==='toggle'&&vizShown())return `<div class="shot"><img src="${VZ.img}" alt="הדמיה מציאותית של המקום עם הציוד"><span class="vtag">להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
+  const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${sprites()}</div>`;
+  const tog=mode==='toggle'?`<button class="ba" aria-pressed="${S.before}" onclick="S.before=!S.before;S.move=false;keep()">${S.before?'עם הציוד':'בלי הציוד'}</button>${S.before?'':`<button class="ba mvb" aria-pressed="${S.move}" onclick="toggleMove()">${S.move?'סיום':'להזיז'}</button>${VZ.on&&!S.move?`<button class="ba vzb" ${VZ.busy?'disabled':''} onclick="realistic()">${VZ.busy?'מכינים תמונה…':'תמונה מציאותית'}</button>`:''}`}`:'';
+  return `<div class="shot${S.move&&mode==='toggle'?' moving':''}">${baseImg()}${layer}${tog}</div>`;
+}
+// Find where the floor ends in a photo: grow upward from the bottom while rows still look like the floor.
+function floorTop(canvas){
+  try{
+    const n=48,c=document.createElement('canvas');c.width=c.height=n;const m=Math.min(canvas.width,canvas.height);
+    c.getContext('2d').drawImage(canvas,(canvas.width-m)/2,(canvas.height-m)/2,m,m,0,0,n,n);
+    const d=c.getContext('2d').getImageData(0,0,n,n).data,px=(x,y)=>[d[(y*n+x)*4],d[(y*n+x)*4+1],d[(y*n+x)*4+2]];
+    let ref=[0,0,0],k=0;for(let y=n-3;y<n;y++)for(let x=12;x<36;x++){const p=px(x,y);ref=ref.map((v,i)=>v+p[i]);k++}ref=ref.map(v=>v/k);
+    let top=n-1;
+    for(let y=n-1;y>=0;y--){
+      let hit=0,sum=[0,0,0];
+      for(let x=0;x<n;x++){const p=px(x,y),dist=Math.abs(p[0]-ref[0])+Math.abs(p[1]-ref[1])+Math.abs(p[2]-ref[2]);if(dist<95){hit++;sum=sum.map((v,i)=>v+p[i])}}
+      if(hit/n<.3)break;top=y;ref=ref.map((v,i)=>v*.7+sum[i]/hit*.3);
+    }
+    return Math.min(75,Math.max(30,top/n*100));
+  }catch(e){return 47}
+}
+
+const V={
+home:()=>`<div class="hero dark plain"><div class="hin"><div class="brand">קיסר <i>סטודיו</i></div>
+ <h1>האירוע שלכם, <em>מתמונה אחת.</em></h1>
+ <ol class="say"><li>מצלמים את המקום.</li><li>רואים אותו מרוהט בציוד של קיסר.</li><li>מזמינים בלחיצה.</li></ol>
+ <button class="btn cta" onclick="go(S.user?'photo':'join')">בואו נתחיל</button>
+ <p class="fine">בלי מדידות, בלי טלפונים, בלי לחכות להצעת מחיר.</p></div></div>`,
+join:()=>`<h2>פותחים חשבון</h2><p class="sub">${LIVE?'כדי להתחיל צריך חשבון עם מייל וטלפון.':'כדי להתחיל צריך חשבון עם מייל וטלפון. נשלח קוד אימות למייל.'}</p>
+ <div class="card f"><label for="em">מייל</label><input id="em" type="text" inputmode="email" autocomplete="off" autocapitalize="off" placeholder="name@example.com" value="${esc(S.user||'')}" onkeydown="if(event.key==='Enter')join()"><label for="ph">טלפון</label><input id="ph" type="text" inputmode="tel" autocomplete="off" placeholder="050-0000000" value="${esc(S.phone||'')}" onkeydown="if(event.key==='Enter')join()"></div>
+ <div class="stack" style="margin-top:16px"><button class="btn" onclick="join()">להמשיך</button></div>
+ ${LIVE?'<p class="demonote">המייל והטלפון נשמרים אצל קיסר אירועים כדי לחזור אליכם לגבי ההזמנה.</p>':'<p class="demonote">דמו: אין כאן הרשמה אמיתית ושום דבר לא נשמר. מקלידים תו כלשהו בכל שדה וממשיכים.</p>'}`,
+photo:()=>`<h2>צלמו את המקום</h2><p class="sub">תמונה אחת מספיקה. הכי טוב מהפינה, כשרואים הרבה רצפה.</p>
+ <label class="tile upb"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 16a4 4 0 0 1 4-4h5l3-4h12l3 4h5a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z"/><circle cx="24" cy="26" r="8"/></svg><b>לפתוח מצלמה</b><input id="fcam" type="file" accept="image/*" capture="environment" onchange="pickFile(this)"></label>
+ <div class="alt"><label class="lnk upb">מהגלריה<input id="fgal" type="file" accept="image/*" onchange="pickFile(this)"></label><button class="lnk" onclick="useSample()">מקום לדוגמה</button></div>`,
+guests:()=>`<h2>כמה אורחים?</h2>
+ <div class="gshot">${shot('empty')}</div>
+ <div class="count"><button aria-label="אורח אחד פחות" ${S.guests<=MING?'disabled':''} data-step="-1" onclick="setGuests(-1)">−</button><b id="gnum">${S.guests}</b><button aria-label="אורח אחד יותר" ${S.guests>=MAXG?'disabled':''} data-step="1" onclick="setGuests(1)">+</button></div>
+ <p class="gsub" id="gsub">${nTables()} שולחנות של ${SEATS}</p>
+ <div class="slide"><span>${MING}</span><input id="g" type="range" min="${MING}" max="${MAXG}" step="1" value="${S.guests}" aria-label="מספר אורחים" oninput="S.guests=+this.value;$('gnum').textContent=this.value;$('gsub').textContent=nTables()+' שולחנות של '+SEATS" onchange="keep()"><span>${MAXG}</span></div>
+ <div class="sty"><label for="sty">איזה אירוע? <small>לא חובה</small></label><input id="sty" type="text" maxlength="40" placeholder="למשל: אירוע יווני, בוהו שיק" value="${esc(S.style)}" oninput="S.style=this.value;markStyle()">
+ <div class="styc">${Object.entries(STYLES).map(([k,v])=>`<button class="chipb" data-k="${k}" aria-pressed="${styleOf()===k}" onclick="S.style=styleOf()==='${k}'?'':'${v.n}';keep()">${v.n}</button>`).join('')}</div></div>
+ <div class="stack"><button class="btn" onclick="analyze()">להראות לי</button><button class="lnk" onclick="go('photo')">תמונה אחרת</button></div>`,
+scan:()=>`<h2>רגע, מסדרים.</h2>
+ <div class="shot">${baseImg()}<div class="scanline"></div></div>
+ <ul class="prog" id="prog"><li>מזהים את הרצפה</li><li>מציבים שולחנות וכיסאות</li><li>מחשבים מחיר</li></ul>`,
+result:()=>{const t=totals(),p=S.pick,g=S.guests,pl=plan(),nt=nTables();
+ const row=id=>{const x=P[id],q=qtyOf(id),sel=isOn(id),no=EXTRAS.includes(id)&&!fits(id);
+  return `<div class="it${sel?' on':''}"><button class="itm" onclick="openItem('${id}')">${ITEM_PRICES&&(id===cheap(CHAIRS)||id===cheap(TABLES))?'<em class="bdg">הכי משתלם</em>':''}${thumb(id)}<span class="tx"><b>${x.n}</b><small>${x.d}</small><span class="pr">${no?'<bdi>אין מקום בתמונה</bdi>':!ITEM_PRICES?(q>1?`<i><bdi>${q}</bdi> יחידות</i>`:''):`<bdi>${nis(priceOf(id)*q)}</bdi>`+(q>1?`<i><bdi>${q}</bdi> × <bdi>${nis(priceOf(id))}</bdi></i>`:'')}</span></span></button><button class="pk" aria-label="${x.n}" aria-pressed="${sel}" ${no?'disabled':''} onclick="choose('${id}')">${sel?'✓':'+'}</button>${sel&&!no&&S.col[id]?swatches(id):''}</div>`};
+ return `<div class="stick">${shot('toggle')}</div>
+ <div class="head"><h2>האירוע שלכם</h2>${pl&&pl.place?`<p>${esc(pl.place)} · מקום ל־${cap()} אורחים${styleOf()?' · סגנון '+STYLES[styleOf()].n:''}</p>`:''}</div>
+ <div class="chipsrow"><button class="chipb" onclick="openGuests()"><b>${g}</b> אורחים · ${nt} שולחנות</button>${Object.keys(S.mv).length?'<button class="chipb" onclick="resetMoves()">לסידור המקורי</button>':''}<button class="chipb ghost" onclick="resetAll()">מהתחלה</button></div>
+ <h3 class="cat"><span>כיסאות</span><small>בוחרים אחד</small></h3><div class="rail">${CHAIRS.map(row).join('')}</div>
+ <h3 class="cat"><span>שולחנות</span><small>בוחרים אחד</small></h3><div class="rail">${TABLES.map(row).join('')}</div>
+ <h3 class="cat"><span>להוסיף לאירוע</span></h3><div class="list">${ADDS.map(row).join('')}</div>
+ <button class="cartbar" onclick="go('checkout')"><span class="n">${lines().length}</span><span class="t">לצפייה בהזמנה</span><b class="${S.delta?'bump':''}">${nis(t.total)}</b></button>`},
+checkout:()=>{const t=totals();
+ const A=S.add,g=S.guests,row=l=>{const x=P[l.id],pr=priceOf(l.id);return `<div class="row" data-id="${l.id}">${x.q?`<img src="${src(x.q)}" alt="">`:`<span class="gl">${GLYPH[l.id]}</span>`}<div class="nm">${nameOf(l.id)}<small>${l.id==='crew'?'לפי גודל האירוע':ITEM_PRICES?l.q+' × '+nis(pr):l.q>1?l.q+' יחידות':'יחידה אחת'}</small></div><div class="tot">${ITEM_PRICES?nis(pr*l.q):''}</div></div>`};
+ const addon=(k,t,sub,price)=>`<button class="addon" aria-pressed="${A[k]}" onclick="setAdd('${k}')"><span class="box"></span><span class="nm"><b>${t}</b><small>${sub}</small></span><span class="p">${ITEM_PRICES?nis(price):''}</span></button>`;
+ const missing=[!A.cloth&&'מפות',!A.dish&&'כלי אוכל','קישוט שולחן'].filter(Boolean).join(', ');
+ return `<button class="backb" aria-label="חזרה לאירוע" onclick="go('result')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button><h2>ההזמנה</h2><p class="sub">${S.guests} אורחים. בדיוק מה שבתמונה.</p>
+ <div class="rows">${lines().map(row).join('')}</div>
+ <div class="lbl"><span>לאן ומתי</span></div>
+ <div class="f"><label for="area">אזור</label><select id="area" onchange="S.area=this.value;keep()">${Object.entries(AREAS).map(([k,v])=>`<option value="${k}" ${S.area===k?'selected':''}>${v[0]}</option>`).join('')}</select>
+ <label for="addr">כתובת האירוע</label><input id="addr" autocomplete="street-address" placeholder="רחוב, מספר, יישוב" value="${esc(S.addr)}" oninput="S.addr=this.value;$('cerr').textContent=''">
+ <label for="date">תאריך האירוע</label><input id="date" type="date" min="${today()}" value="${esc(S.date)}" oninput="S.date=this.value;$('cerr').textContent=''"></div>
+ <div class="lbl"><span>מה כלול</span></div>
+ <ul class="inc"><li>הובלה ופריקה בסמוך למשאית</li>${A.crew?'<li>צוות שנושא את הציוד ומסדר אותו במקום</li>':''}<li>איסוף ביום שאחרי האירוע, מאותה נקודה</li><li>ניקוי הציוד אחרי השימוש</li></ul>
+ <div class="lbl"><span>מה לא כלול</span></div>
+ <ul class="inc no">${A.crew?'':'<li><span><b>סבלות וסידור הציוד במקום.</b> המחיר כולל פריקה ליד המשאית בלבד. אפשר להוסיף צוות סידור במסך הקודם.</span></li>'}<li>${missing}</li><li>נזק או אובדן ציוד, שיחויבו בנפרד</li><li>שינוי תאריך פחות מ־72 שעות לפני האירוע</li></ul>
+ <div class="lbl"><span>תשלום</span></div>
+ <div class="pays" role="radiogroup" aria-label="אמצעי תשלום">${[['apple','Pay','Apple Pay','אישור בלחיצה כפולה'],['visa','VISA','Visa •••• 4242','כרטיס אשראי']].map(([k,m,t,d])=>`<button class="payo" role="radio" aria-checked="${S.pay===k}" onclick="S.pay='${k}';keep()"><span class="card ${k}">${m}</span><span class="nm"><b>${t}</b><small>${d}</small></span><i class="rd"></i></button>`).join('')}</div>
+ <div class="totals"><div><span>ציוד</span><span>${nis(t.sub)}</span></div><div><span>הובלה, פריקה ואיסוף</span><span>${nis(t.del)}</span></div><div><span>מע״מ 18%</span><span>${nis(t.vat)}</span></div><div class="big"><span>סה״כ</span><span>${nis(t.total)}</span></div></div>
+ <p class="err" id="cerr" role="alert"></p>
+ <p class="cap">התנאים והמחירים בדמו להמחשה בלבד. כפוף לאישור זמינות.</p>
+ <div class="bar"><div class="swipe" id="swipe"><span class="lab">החליקו כדי להזמין · ${nis(t.total)}</span><button class="knob" id="knob" aria-label="להזמין" onclick="if(event.detail===0)placeOrder()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5l-7 7 7 7"/></svg></button></div></div>`},
+done:()=>{const o=S.order;return `<div class="done"><div class="tick"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 25l8 8 16-18"/></svg></div>
+ <h2>ההזמנה התקבלה</h2><p class="sub">הזמנה מס׳ ${o.no}</p>
+ <div class="recap"><div><span>מתי</span><b>${esc(o.dateText)}</b></div><div><span>איפה</span><b>${esc(o.addr)}</b></div><div><span>מה</span><b>${esc(o.what)}</b></div><div><span>סה״כ</span><b>${nis(o.total)}</b></div></div>
+ <div class="trk" aria-hidden="true"><i class="d"></i><i class="a"></i><i></i><i></i></div>
+ <ol class="next"><li class="done"><b>ההזמנה התקבלה</b>עכשיו</li><li class="on"><b>מחכים לאישור זמינות</b>נציג חוזר אליכם היום</li><li><b>${esc(o.dateText)}</b>הציוד מגיע ונפרק ליד המשאית</li><li><b>${esc(o.nextText)}</b>איסוף מאותה נקודה</li></ol>
+ <p class="cap" style="margin-bottom:18px">${o.saved?'<b>ההזמנה נשמרה.</b> לא חויב תשלום. נציג יחזור אליכם לאישור ולתשלום.':'<b>זה דמו.</b> לא בוצעה הזמנה ולא חויב כרטיס.'}</p>
+ <button class="btn dark" onclick="resetAll()">אירוע חדש</button></div>`}
+};
+const ADDS=['sofa','sofam','arm','pouf','coffee','bar','counter','hibar','umb','bed','cloth','dish','crew'];
+const ITEM_PRICES=false; // prices per product are hidden; the order still shows its totals
+const cheap=g=>g.reduce((a,b)=>P[a].p<=P[b].p?a:b);
+const qtyOf=id=>CHAIRS.includes(id)||id==='dish'?S.guests:TABLES.includes(id)||id==='cloth'?nTables():1;
+const isOn=id=>CHAIRS.includes(id)?S.pick.chair===id:TABLES.includes(id)?S.pick.table===id:EXTRAS.includes(id)?!!pictured()[id]:!!S.add[id];
+const thumb=id=>P[id].q?`<img src="${src(P[id].q)}" alt="">`:`<span class="gl">${GLYPH[id]}</span>`;
+function choose(id){ // one tap on the plus: chairs and tables are a single choice, everything else is on or off
+  closeSheet();
+  if(CHAIRS.includes(id)){if(S.pick.chair!==id)setPick('chair',id)}
+  else if(TABLES.includes(id)){if(S.pick.table!==id)setPick('table',id)}
+  else if(EXTRAS.includes(id))setPick('x',id);
+  else setAdd(id);
+}
+// 3D and "see it in your place": Google's model-viewer, loaded only when someone asks for it.
+const M3={'tb-x':'xt','tb-oak':'oak','tb-knight':'oak',hibar:'milano','tb-round':'round',umb:'umb'},M3U={};let m3ready=null;
+function load3d(){return m3ready||(m3ready=Promise.all([new Promise((ok,no)=>{const t=document.createElement('script');t.src='models.js';t.onload=ok;t.onerror=no;document.head.appendChild(t)}),import('./model-viewer.min.js')]).catch(e=>{m3ready=null;throw e}))}
+async function open3d(id){
+  const box=document.querySelector('#sheetBody .big'),btn=$('b3d');if(!box||!M3[id])return;btn.disabled=true;btn.textContent='טוען…';
+  try{await load3d();const k=M3[id];M3U[k]=M3U[k]||URL.createObjectURL(new Blob([Uint8Array.from(atob(MODELS[k]),c=>c.charCodeAt(0))],{type:'model/gltf-binary'}));
+    if(!document.querySelector('#sheetBody .big'))return;
+    box.classList.add('m3');box.innerHTML=`<model-viewer src="${M3U[k]}" ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor" ar-scale="fixed" camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="35deg 68deg auto" alt="${esc(P[id].n)}"><button slot="ar-button" class="arb">ראה אצלך במקום</button></model-viewer>`;
+    btn.outerHTML='<p class="m3n">דגם להמחשה בגודל אמיתי. סובבו באצבע. בטלפון שתומך, הכפתור מניח אותו על הרצפה דרך המצלמה.</p>';
+  }catch(e){btn.disabled=false;btn.textContent='לראות בתלת־ממד';toast('התלת־ממד לא נטען. נסו שוב')}
+}
+function openItem(id){
+  const x=P[id],q=qtyOf(id),sel=isOn(id),single=CHAIRS.includes(id)||TABLES.includes(id),no=EXTRAS.includes(id)&&!fits(id),tot=nis(priceOf(id)*q);
+  $('sheetBody').innerHTML=`<div class="grab"></div><div class="big">${thumb(id)}</div><h4>${x.n}</h4><p>${x.d}</p>
+   ${M3[id]?`<button id="b3d" class="b3d" onclick="open3d('${id}')">לראות בתלת־ממד</button>`:''}
+   <div class="calc"><span>${q>1?q+' יחידות'+(ITEM_PRICES?' × '+nis(priceOf(id)):''):'יחידה אחת'}</span><b>${ITEM_PRICES?tot:''}</b></div>
+   ${no?'<button class="btn" disabled>אין מקום בתמונה הזו</button>':single?(sel?'<button class="btn" disabled>נבחר לאירוע</button>':`<button class="btn" onclick="choose('${id}')">לבחור${ITEM_PRICES?' · '+tot:''}</button>`):(sel?`<button class="btn dark" onclick="choose('${id}')">להסיר מההזמנה</button>`:`<button class="btn" onclick="choose('${id}')">להוסיף${ITEM_PRICES?' · '+tot:''}</button>`)}`;
+  $('sheet').classList.add('open');
+}
+function openGuests(){
+  $('sheetBody').innerHTML=`<div class="grab"></div><h4>כמה אורחים?</h4>
+   <div class="count"><button aria-label="אורח אחד פחות" data-step="-1" onclick="bumpGuests(-1)">−</button><b id="g2n">${S.guests}</b><button aria-label="אורח אחד יותר" data-step="1" onclick="bumpGuests(1)">+</button></div>
+   <div class="slide"><span>${MING}</span><input id="g2" type="range" min="${Math.min(MING,cap())}" max="${cap()}" step="1" value="${S.guests}" aria-label="מספר אורחים" oninput="$('g2n').textContent=this.value" onchange="bumpGuests(+this.value-S.guests)"><span>${cap()}</span></div>
+   <button class="btn" onclick="closeSheet()">סיימתי</button>`;
+  $('sheet').classList.add('open');
+}
+function bumpGuests(d){if(!d)return;setGuests(d);if($('g2')){$('g2').value=S.guests;$('g2n').textContent=S.guests}}
+function closeSheet(){$('sheet').classList.remove('open');$('sheetBody').style.transform='';$('sheetBody').style.transition=''}
+let pull=null;
+document.addEventListener('pointerdown',e=>{const gb=e.target.closest&&e.target.closest('.grab');if(!gb)return;pull={y:e.clientY,d:0};try{gb.setPointerCapture(e.pointerId)}catch(_){}$('sheetBody').style.transition='none';e.preventDefault()});
+document.addEventListener('pointermove',e=>{if(!pull)return;pull.d=Math.max(0,e.clientY-pull.y);$('sheetBody').style.transform=`translateY(${pull.d}px)`});
+const endPull=()=>{if(!pull)return;const d=pull.d;pull=null;$('sheetBody').style.transition='';if(d>70)closeSheet();else $('sheetBody').style.transform=''};
+document.addEventListener('pointerup',endPull);document.addEventListener('pointercancel',endPull);
+let hold=null;
+const stopHold=()=>{if(hold){clearTimeout(hold.t);clearInterval(hold.i);hold=null}};
+document.addEventListener('pointerdown',e=>{const bt=e.target.closest&&e.target.closest('[data-step]');if(!bt||bt.disabled)return;stopHold();const st=+bt.dataset.step,inSheet=!!bt.closest('#sheetBody');
+  hold={t:setTimeout(()=>{if(hold)hold.i=setInterval(()=>{if(S.scr==='scan'||(inSheet&&!$('sheet').classList.contains('open')))return stopHold();inSheet?bumpGuests(st):setGuests(st)},70)},420)}});
+document.addEventListener('pointerup',stopHold);document.addEventListener('pointercancel',stopHold);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+function keep(){const el=$('scr'),y=el.scrollTop;el.classList.remove('enter');render();el.scrollTop=y} // an in-place update: no entrance animation
+function setPick(k,v){const b=totals().total;if(k==='x')S.pick.x[v]=!S.pick.x[v];else S.pick[k]=v;S.delta=totals().total-b;S.before=false;keep()}
+function setAdd(k){const b=totals().total;S.add[k]=!S.add[k];S.delta=totals().total-b;S.before=false;keep()}
+function setGuests(d){const b=totals().total;S.guests=clampG(S.guests+d);for(const k in S.mv)if(k[0]==='t')delete S.mv[k];S.delta=totals().total-b;S.before=false;keep()}
+function useSample(){if(S.photo)URL.revokeObjectURL(S.photo);S.photo=null;S.blob=null;S.plan=null;S.fit=100;go('guests')}
+async function decodePhoto(f){ // an <img> honours the way the phone was held, on every browser; createImageBitmap is the fallback
+  const u=URL.createObjectURL(f);
+  try{const im=new Image();im.src=u;await new Promise((ok,no)=>{im.onload=ok;im.onerror=no});if(im.naturalWidth)return{src:im,width:im.naturalWidth,height:im.naturalHeight,done:()=>URL.revokeObjectURL(u)}}catch(e){}
+  URL.revokeObjectURL(u);const b=await createImageBitmap(f);return{src:b,width:b.width,height:b.height,done(){}};
+}
+async function pickFile(inp){
+  const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  let blob=null,fit=100;
+  try{ // centre-crop to the square the app shows, so what Claude analyses is exactly what the customer sees
+    const bmp=await decodePhoto(f),m=Math.min(bmp.width,bmp.height),n=Math.min(1200,m),c=document.createElement('canvas');
+    c.width=c.height=n;c.getContext('2d').drawImage(bmp.src,(bmp.width-m)/2,(bmp.height-m)/2,m,m,0,0,n,n);bmp.done();
+    fit=Math.round(Math.min(110,Math.max(50,(100-floorTop(c))/53*100)));
+    blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.88));
+  }catch(e){}
+  if(!blob){toast('לא הצלחנו לפתוח את הקובץ. נסו תמונת JPG או PNG.');return}
+  if(S.photo)URL.revokeObjectURL(S.photo);S.photo=URL.createObjectURL(blob);S.blob=blob;S.plan=null;S.fit=fit;go('guests');
+}
+async function analyze(){
+  if(S.busy)return;S.busy=true;go('scan');
+  const li=[...document.querySelectorAll('#prog li')],d=matchMedia('(prefers-reduced-motion:reduce)').matches?120:750,wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const mark=(i,c)=>{if(li[i]&&li[i].isConnected)li[i].className=c};
+  mark(0,'on');const[plan]=await Promise.all([S.photo?askPlan():null,wait(d)]);
+  if(plan&&plan.usable===false){S.busy=false;go('photo');toast(plan.reason||'לא מצאנו רצפה פנויה בתמונה. נסו תמונה אחרת.');return}
+  S.plan=plan&&plan.cap?plan:null;
+  mark(0,'done');mark(1,'on');await wait(d);mark(1,'done');mark(2,'on');await wait(d);mark(2,'done');await wait(250);
+  applyStyle();S.made=true;const asked=S.guests;S.guests=clampG(S.guests);
+  S.busy=false;S.before=false;S.anim=true;go('result');S.anim=false;
+  S.mv={};
+  if(S.guests<asked)toast(`במקום הזה נכנסים עד ${S.guests} אורחים`);
+  else if(!S.hinted){S.hinted=true;toast('רוצים סידור אחר? לחצו על ״להזיז״ בתמונה')}
+}
+function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',before:false});go('home')}
+function go(s){if(S.busy&&s!=='scan')return;closeSheet();if(s!==S.scr)track('screen_'+s);S.scr=s;S.delta=0;S.move=false;render();const el=$('scr');el.scrollTop=0;el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter')}
+function render(){$('scr').innerHTML=V[S.scr]();document.querySelector('.phone').classList.toggle('home',S.scr==='home')}
+const GLYPH={dish:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>',crew:'<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M2.5 19c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M14 14c3.5-1 7 1 7 5"/></svg>'};
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+async function placeOrder(){
+  if(S.scr!=='checkout'||S.busy)return; // an order can only be placed once, from the order screen
+  const addr=S.addr.trim(),fail=(m,id)=>{$('cerr').textContent=m;$(id).focus();$(id).scrollIntoView({block:'center'})};
+  if(addr.length<5)return fail('חסרה כתובת לאירוע. כתבו רחוב, מספר ויישוב.','addr');
+  if(!S.date)return fail('חסר תאריך לאירוע.','date');
+  if(S.date<today())return fail('התאריך כבר עבר. בחרו תאריך מהיום והלאה.','date');
+  const c=pictured(),p=S.pick,[y,m,d]=S.date.split('-'),nx=new Date(+y,+m-1,+d+1);
+  S.order={no:'D-'+(1000+Math.floor(Math.random()*9000)),addr,dateText:`${+d}.${+m}.${y}`,nextText:`${nx.getDate()}.${nx.getMonth()+1}.${nx.getFullYear()}`,total:totals().total,what:`${c[p.table]} שולחנות, ${c[p.chair]} כיסאות${EXTRAS.filter(k=>c[k]).map(k=>', '+P[k].s).join('')}${c.cloth?', מפות':''}${S.add.dish?', כלי אוכל':''}${S.add.crew?', צוות סידור':''}`};
+  if(LIVE){ // the server prices the order itself from the catalog; its number and total are the ones shown
+    S.busy=true;let r=null;try{r=await call('order',{order:{guests:S.guests,area:S.area,address:addr,event_date:S.date,style:S.style,pay_method:S.pay,lines:lines().map(l=>({id:l.id,color:S.col[l.id]&&S.col[l.id]!=='white'?S.col[l.id]:undefined}))}})}catch(e){}S.busy=false;
+    if(!r||!r.ok||!r.d.no){S.order=null;return fail(!r?'אין חיבור. ההזמנה לא נשלחה, נסו שוב.':r.status===401?'צריך להירשם מחדש כדי להזמין.':r.status===429?'יותר מדי הזמנות היום. נסו מחר.':'ההזמנה לא נשמרה. נסו שוב.','addr')}
+    S.order.no=r.d.no;S.order.total=r.d.total;S.order.saved=true}
+  go('done');
+}
+render();
+// warm the cache so swapping a chair or a table is instant
+const warm=[];setTimeout(()=>{for(const u of[...Object.keys(AR).flatMap(k=>[src(k),src(k,'far')]),'before.jpg']){const im=new Image();im.src=u;warm.push(im)}},300); // kept in memory so a swap never flashes
+</script>
+</body>
+</html>
