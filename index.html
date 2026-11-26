@@ -430,7 +430,8 @@ input,select,textarea{-webkit-user-select:text;user-select:text;font-size:16px!i
 .ba{min-height:40px;padding:0 16px;font-size:13px}
 .ba::after{content:"";position:absolute;inset:-6px}                        /* a bigger target than the pill itself */
 .mvb{inset:12px 12px auto auto}
-.vzb{inset:auto auto 12px 12px}.vzb[disabled]{opacity:.8}
+.vzb{inset:auto auto 12px 12px}
+.shot.vz,.stick .shot.vz,.stick.mini .shot.vz{aspect-ratio:auto;width:100%}.shot.vz img{position:static;display:block;width:100%;height:auto}.vzb[disabled]{opacity:.8}
 .vtag{position:absolute;inset:12px 12px auto auto;z-index:3100;background:rgba(16,16,20,.72);color:#fff;font-size:12px;padding:6px 12px;border-radius:99px}
 .mvb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
 .live{display:none}
@@ -772,21 +773,30 @@ function pasteUp(){ // draw the picture on screen (photo + furniture, in the sam
     if(sp.classList.contains('fl')){x.save();x.translate(X+W,Y);x.scale(-1,1);x.drawImage(im,0,0,W,H);x.restore()}else x.drawImage(im,X,Y,W,H)}
   return c.toDataURL('image/jpeg',.9).split(',')[1];
 }
+const jpegOf=async(u,max,bg)=>{const im=new Image();im.src=u;await im.decode();const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);const x=c.getContext('2d');if(bg){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)}x.drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.9).split(',')[1]};
+// The event picture: the engine gets the empty venue photo, a product photo of every chosen piece and the list
+// of pieces with quantities, and photographs the place set up for the event. Our own paste-up goes along as a
+// layout sketch only when it rests on a real reading of the photo.
 async function realistic(){
   if(VZ.busy)return;if(vizShown()){VZ.img='';keep();return}
-  let pic;try{pic=pasteUp()}catch(e){pic=null}if(!pic){toast('לא הצלחנו להכין את התמונה. נסו שוב');return}
-  const key=vizKey(),pl=plan()||{};VZ.busy=true;keep();
-  try{const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({composite:pic,mime:'image/jpeg',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
+  const key=vizKey(),pl=plan()||{},c=pictured(),p=S.pick;VZ.busy=true;keep();
+  try{
+    const place=await jpegOf(S.photo||'before.jpg',1600),cl=S.add.cloth&&P[p.table].q!=='round';
+    const want=[[p.table,P[p.table].q+(S.add.cloth?'-c'+tint('cloth'):'')],[p.chair,P[p.chair].q],...EXTRAS.filter(k=>c[k]).map(k=>[k,P[k].q+(k==='sofa'?tint('sofa'):'')])].slice(0,8);
+    const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),mime:'image/jpeg',data:await jpegOf(src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
+    const items=[`${c[p.table]} × ${P[p.table].n}${S.add.cloth?' ('+(cl?'עם מפה ':'')+'בצבע '+COLORS[S.col.cloth][0]+')':''}`,`${c[p.chair]} × ${P[p.chair].n}`,...EXTRAS.filter(k=>c[k]).map(k=>'1 × '+nameOf(k)),S.add.dish?`עריכת שולחן מלאה ל-${S.guests} סועדים`:''].filter(Boolean).join('; ');
+    let sketch;if(S.photo&&S.plan){try{sketch=pasteUp()}catch(e){}}
+    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'styled',place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
     if(r.status===429)toast('הגענו למכסת התמונות להיום. נסו מחר');
-    else if(!r.ok||!d.image||d.provider==='mock')toast('התמונה המציאותית לא זמינה כרגע');
+    else if(!r.ok||!d.image||d.provider==='mock')toast('ההדמיה לא זמינה כרגע. נסו שוב');
     else{VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key}
   }catch(e){toast('אין חיבור. נסו שוב')}
   VZ.busy=false;if(S.scr==='result')keep();
 }
 function shot(mode){ // 'empty' | 'full' | 'toggle'
-  if(mode==='toggle'&&vizShown())return `<div class="shot"><img src="${VZ.img}" alt="הדמיה מציאותית של המקום עם הציוד"><span class="vtag">להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
+  if(mode==='toggle'&&vizShown())return `<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
   const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${sprites()}</div>`;
-  const tog=mode==='toggle'?`<button class="ba" aria-pressed="${S.before}" onclick="S.before=!S.before;S.move=false;keep()">${S.before?'עם הציוד':'בלי הציוד'}</button>${S.before?'':`<button class="ba mvb" aria-pressed="${S.move}" onclick="toggleMove()">${S.move?'סיום':'להזיז'}</button>${VZ.on&&!S.move?`<button class="ba vzb" ${VZ.busy?'disabled':''} onclick="realistic()">${VZ.busy?'מכינים תמונה…':'תמונה מציאותית'}</button>`:''}`}`:'';
+  const tog=mode==='toggle'?`<button class="ba" aria-pressed="${S.before}" onclick="S.before=!S.before;S.move=false;keep()">${S.before?'עם הציוד':'בלי הציוד'}</button>${S.before?'':`<button class="ba mvb" aria-pressed="${S.move}" onclick="toggleMove()">${S.move?'סיום':'להזיז'}</button>${VZ.on&&!S.move?`<button class="ba vzb" ${VZ.busy?'disabled':''} onclick="realistic()">${VZ.busy?'מכינים הדמיה, כחצי דקה…':'הדמיית האירוע'}</button>`:''}`}`:'';
   return `<div class="shot${S.move&&mode==='toggle'?' moving':''}">${baseImg()}${layer}${tog}</div>`;
 }
 // Find where the floor ends in a photo: grow upward from the bottom while rows still look like the floor.
