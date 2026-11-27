@@ -441,7 +441,7 @@ input,select,textarea{-webkit-user-select:text;user-select:text;font-size:16px!i
 .ba::after{content:"";position:absolute;inset:-6px}                        /* a bigger target than the pill itself */
 .mvb{inset:12px 12px auto auto}
 .vzb{inset:auto auto 12px 12px}
-.shot.vz,.stick .shot.vz,.stick.mini .shot.vz{aspect-ratio:auto;width:100%}.shot.vz img{position:static;display:block;width:100%;height:auto}.vnote{font-size:12.5px;color:var(--mute);margin:8px 4px 0;text-align:center}.vzb[disabled]{opacity:.8}.vzb.go{background:var(--accent);color:var(--on-accent,#1f1f1f);font-weight:700}
+.shot.vz,.stick .shot.vz,.stick.mini .shot.vz{aspect-ratio:auto;width:fit-content;max-width:100%;margin-inline:auto}.shot.vz img{position:static;display:block;width:auto;max-width:100%;height:auto;max-height:56cqh}.stick:has(.shot.vz){position:static}.vnote{font-size:12.5px;color:var(--mute);margin:8px 4px 0;text-align:center}.vzb[disabled]{opacity:.8}.vzb.go{background:var(--accent);color:var(--on-accent,#1f1f1f);font-weight:700}
 .vtag{position:absolute;inset:12px 12px auto auto;z-index:3100;background:rgba(16,16,20,.72);color:#fff;font-size:12px;padding:6px 12px;border-radius:99px}
 .mvb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
 .live{display:none}
@@ -536,6 +536,7 @@ const API='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/api',LIVE=/(^|\
 const SID=Math.random().toString(36).slice(2,12);let TICKET='';
 const call=(action,body)=>fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,session:SID,ticket:TICKET||undefined,...body})}).then(async r=>({ok:r.ok,status:r.status,d:await r.json().catch(()=>({}))}));
 const track=(name,props)=>{if(LIVE)call('event',{name,props}).catch(()=>{})};
+if(LIVE)setTimeout(()=>{try{const m=JSON.parse(localStorage.getItem('ks_me')||'null');if(m&&m.t&&m.u){TICKET=m.t;S.user=m.u;S.phone=m.p||''}}catch(e){}},0); // after the app state exists
 // Names, prices and what is on offer come from the catalog Caesar's staff edit; the pictures stay with the app.
 if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=id,name,description,price_ils,active',{headers:{apikey:'sb_publishable_194S1a54eAtumboQ1UBBrA_k11UDLzD'}}).then(r=>r.ok?r.json():[]).then(rows=>{
   if(!Array.isArray(rows)||!rows.length)return;const on=new Set(rows.map(r=>r.id));
@@ -543,7 +544,7 @@ if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=
   for(const L of[CHAIRS,TABLES,EXTRAS,ADDS])for(let i=L.length-1;i>=0;i--)if(!on.has(L[i])&&(L.length>1||L===EXTRAS||L===ADDS))L.splice(i,1); // a product switched off disappears; one chair and one table always remain
   if(!CHAIRS.includes(S.pick.chair))S.pick.chair=CHAIRS[0];if(!TABLES.includes(S.pick.table))S.pick.table=TABLES[0];
   for(const k of['cloth','dish','crew'])if(!on.has(k))S.add[k]=false;
-  render()}).catch(()=>{});
+  if(!['join','checkout','scan'].includes(S.scr)&&!$('sheet').classList.contains('open'))keep()}).catch(()=>{});
 async function join(){const v=$('em').value.trim(),t=$('ph').value.trim();S.phone=t;if(!v){toast('הקלידו מייל כדי להמשיך');$('em').focus();return}if(!t){S.user=null;toast('הקלידו טלפון כדי להמשיך');$('ph').focus();return}
   if(LIVE){if(S.busy)return;
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v)){toast('המייל לא נראה תקין');$('em').focus();return}
@@ -551,7 +552,7 @@ async function join(){const v=$('em').value.trim(),t=$('ph').value.trim();S.phon
     S.busy=true;let r=null;try{r=await call('join',{email:v,phone:t})}catch(e){}S.busy=false;
     if(!r){toast('אין חיבור. נסו שוב');return}
     if(!r.ok||!r.d.ticket){toast(r.d.error==='email'?'המייל לא נראה תקין':r.d.error==='phone'?'הטלפון לא נראה תקין':r.status===429?'יותר מדי ניסיונות היום. נסו מחר':'ההרשמה לא הצליחה. נסו שוב');return}
-    TICKET=r.d.ticket}
+    TICKET=r.d.ticket;try{localStorage.setItem('ks_me',JSON.stringify({u:v,p:t,t:TICKET}))}catch(e){}} // remembered on this phone, so a returning customer is not asked again
   S.user=v;go('photo')}
 const COLORS={white:['לבן','#F4EFE6'],sand:['חול','#CDB38A'],sage:['ירוק מרווה','#8FA67A'],blue:['כחול','#4F78A8'],pink:['ורוד עתיק','#D4938E'],black:['שחור','#2A2A2A']};
 const tint=id=>S.col[id]==='white'?'':'-'+S.col[id],nameOf=id=>P[id].n+(S.col[id]&&S.col[id]!=='white'?' · '+COLORS[S.col[id]][0]:'');
@@ -562,9 +563,9 @@ const S={scr:'home',made:false,busy:false,guests:30,area:'sharon',photo:null,blo
 const $=id=>document.getElementById(id);
 const nis=n=>'₪'+Math.round(n).toLocaleString('he-IL');
 const plan=()=>S.photo?S.plan:SAMPLE;
-const cap=()=>S.photo&&!S.made?MAXG:plan()?Math.min(MAXG,plan().cap):FALLBACK_MAX; // before the photo is read, any number can be asked for
+const cap=()=>(S.photo&&!S.made)||VZ.on?MAXG:plan()?Math.min(MAXG,plan().cap):FALLBACK_MAX; // before the photo is read, any number can be asked for
 const clampG=n=>Math.min(cap(),Math.max(MING,Math.round(n)));
-const fits=k=>!plan()||!!plan()[k]; // is there floor for this extra in the customer's photo
+const fits=k=>VZ.on||!plan()||!!plan()[k]; // is there floor for this extra in the customer's photo
 const nTables=()=>Math.ceil(S.guests/SEATS);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2400)}
@@ -861,12 +862,12 @@ guests:()=>`<h2>כמה אורחים?</h2>
  <div class="stack"><button class="btn" onclick="analyze()">להראות לי</button><button class="lnk" onclick="go('photo')">תמונה אחרת</button></div>`,
 scan:()=>`<h2>רגע, מסדרים.</h2>
  <div class="shot">${baseImg()}<div class="scanline"></div></div>
- <ul class="prog" id="prog"><li>מזהים את הרצפה</li><li>מציבים שולחנות וכיסאות</li><li>מכינים רשימת ציוד</li></ul>`,
+ <ul class="prog" id="prog"><li>${VZ.on?'קוראים את הצילום':'מזהים את הרצפה'}</li><li>${VZ.on?'מרכיבים את הציוד שבחרתם':'מציבים שולחנות וכיסאות'}</li><li>מכינים רשימת ציוד</li></ul>`,
 result:()=>{const t=totals(),p=S.pick,g=S.guests,pl=plan(),nt=nTables();
  const row=id=>{const x=P[id],q=qtyOf(id),sel=isOn(id),no=EXTRAS.includes(id)&&!fits(id);
   return `<div class="it${sel?' on':''}"><button class="itm" onclick="openItem('${id}')">${ITEM_PRICES&&(id===cheap(CHAIRS)||id===cheap(TABLES))?'<em class="bdg">הכי משתלם</em>':''}${thumb(id)}<span class="tx"><b>${x.n}</b><small>${x.d}</small><span class="pr">${no?'<bdi>אין מקום בתמונה</bdi>':!ITEM_PRICES?(q>1?`<i><bdi>${q}</bdi> יחידות</i>`:''):`<bdi>${nis(priceOf(id)*q)}</bdi>`+(q>1?`<i><bdi>${q}</bdi> × <bdi>${nis(priceOf(id))}</bdi></i>`:'')}</span></span></button><button class="pk" aria-label="${x.n}" aria-pressed="${sel}" ${no?'disabled':''} onclick="choose('${id}')">${sel?'✓':'+'}</button>${sel&&!no&&S.col[id]?swatches(id):''}</div>`};
  return `<div class="stick">${shot('toggle')}</div>
- <div class="head"><h2>האירוע שלכם</h2>${pl&&pl.place?`<p>${esc(pl.place)} · מקום ל־${cap()} אורחים${styleOf()?' · סגנון '+STYLES[styleOf()].n:''}</p>`:''}</div>
+ <div class="head"><h2>האירוע שלכם</h2>${VZ.on?(S.advice?`<p>${esc(S.advice)}</p>`:''):pl&&pl.place?`<p>${esc(pl.place)} · מקום ל־${cap()} אורחים${styleOf()?' · סגנון '+STYLES[styleOf()].n:''}</p>`:''}</div>
  <div class="chipsrow"><button class="chipb" onclick="openGuests()"><b>${g}</b> אורחים · ${nt} שולחנות</button>${Object.keys(S.mv).length?'<button class="chipb" onclick="resetMoves()">לסידור המקורי</button>':''}<button class="chipb ghost" onclick="resetAll()">מהתחלה</button></div>
  <h3 class="cat"><span>כיסאות</span><small>בוחרים אחד</small></h3><div class="rail">${CHAIRS.map(row).join('')}</div>
  <h3 class="cat"><span>שולחנות</span><small>בוחרים אחד</small></h3><div class="rail">${TABLES.map(row).join('')}</div>
@@ -876,7 +877,7 @@ checkout:()=>{const t=totals();
  const A=S.add,g=S.guests,row=l=>{const x=P[l.id],pr=priceOf(l.id);return `<div class="row" data-id="${l.id}">${x.q?`<img src="${src(x.q)}" alt="">`:`<span class="gl">${GLYPH[l.id]}</span>`}<div class="nm">${nameOf(l.id)}<small>${l.id==='crew'?'לפי גודל האירוע':ITEM_PRICES?l.q+' × '+nis(pr):l.q>1?l.q+' יחידות':'יחידה אחת'}</small></div><div class="tot">${ITEM_PRICES?nis(pr*l.q):''}</div></div>`};
  const addon=(k,t,sub,price)=>`<button class="addon" aria-pressed="${A[k]}" onclick="setAdd('${k}')"><span class="box"></span><span class="nm"><b>${t}</b><small>${sub}</small></span><span class="p">${ITEM_PRICES?nis(price):''}</span></button>`;
  const missing=[!A.cloth&&'מפות',!A.dish&&'כלי אוכל','קישוט שולחן'].filter(Boolean).join(', ');
- return `<button class="backb" aria-label="חזרה לאירוע" onclick="go('result')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button><h2>המפרט שלכם</h2><p class="sub">${S.guests} אורחים. בדיוק מה שבתמונה.</p>
+ return `<button class="backb" aria-label="חזרה לאירוע" onclick="go('result')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button><h2>המפרט שלכם</h2><p class="sub">${S.guests} אורחים. זה מה שבחרתם.</p>
  <div class="rows">${lines().map(row).join('')}</div>
  <div class="lbl"><span>לאן ומתי</span></div>
  <div class="f"><label for="area">אזור</label><select id="area" onchange="S.area=this.value;keep()">${Object.entries(AREAS).map(([k,v])=>`<option value="${k}" ${S.area===k?'selected':''}>${v[0]}</option>`).join('')}</select>
@@ -893,7 +894,7 @@ done:()=>{const o=S.order;return `<div class="done"><div class="tick"><svg viewB
  <h2>המפרט נשלח</h2><p class="sub">בקשה מס׳ ${o.no}</p>${VZ.img?`<div class="shot vz" style="margin-bottom:16px"><img src="${VZ.img}" alt="הדמיה של האירוע"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="saveViz()">לשמור תמונה</button></div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד.</p>`:''}
  <div class="recap"><div><span>מתי</span><b>${esc(o.dateText)}</b></div><div><span>איפה</span><b>${esc(o.addr)}</b></div><div><span>מה</span><b>${esc(o.what)}</b></div></div>
  <div class="trk" aria-hidden="true"><i class="d"></i><i class="a"></i><i></i><i></i></div>
- <ol class="next"><li class="done"><b>המפרט נשלח</b>עכשיו</li><li class="on"><b>נציג מכין הצעת מחיר</b>וחוזר אליכם במייל או בטלפון</li><li><b>${esc(o.dateText)}</b>הציוד מגיע ונפרק ליד המשאית</li><li><b>${esc(o.nextText)}</b>איסוף מאותה נקודה</li></ol>
+ <ol class="next"><li class="done"><b>המפרט נשלח</b>עכשיו</li><li class="on"><b>נציג מכין הצעת מחיר</b>וחוזר אליכם במייל או בטלפון</li><li><b>מאשרים את ההצעה</b>ורק אז ההזמנה נסגרת</li><li><b>${esc(o.dateText)}</b>האירוע שלכם</li></ol>
  <p class="cap" style="margin-bottom:18px">${o.saved?'<b>המפרט התקבל אצל קיסר אירועים.</b> נציג יחזור אליכם עם הצעת מחיר.'+(o.mailed?' שלחנו אליכם למייל את ההדמיה ואת המפרט.':''):'<b>זה דמו.</b> המפרט לא נשלח לאף אחד.'}</p>
  <button class="btn dark" onclick="resetAll()">אירוע חדש</button></div>`}
 };
@@ -1031,7 +1032,7 @@ async function placeOrder(){
   S.order={no:'D-'+(1000+Math.floor(Math.random()*9000)),addr,dateText:`${+d}.${+m}.${y}`,nextText:`${nx.getDate()}.${nx.getMonth()+1}.${nx.getFullYear()}`,total:totals().total,what:`${c[p.table]} שולחנות, ${c[p.chair]} כיסאות${EXTRAS.filter(k=>c[k]).map(k=>', '+P[k].s).join('')}${c.cloth?', מפות':''}${S.add.dish?', כלי אוכל':''}${S.add.crew?', צוות סידור':''}`};
   if(LIVE){ // the server prices the order itself from the catalog; its number and total are the ones shown
     S.busy=true;let r=null;try{r=await call('order',{order:{guests:S.guests,area:S.area,address:addr,event_date:S.date,style:S.style,pay_method:S.pay,viz:vizShown()&&VZ.id?VZ.id:undefined,lines:lines().map(l=>({id:l.id,color:S.col[l.id]&&S.col[l.id]!=='white'?S.col[l.id]:undefined}))}})}catch(e){}S.busy=false;
-    if(!r||!r.ok||!r.d.no){S.order=null;return fail(!r?'אין חיבור. המפרט לא נשלח, נסו שוב.':r.status===401?'צריך להירשם מחדש כדי לשלוח.':r.status===429?'יותר מדי בקשות היום. נסו מחר.':'המפרט לא נשלח. נסו שוב.','addr')}
+    if(!r||!r.ok||!r.d.no){S.order=null;return fail(!r?'אין חיבור. המפרט לא נשלח, נסו שוב.':r.status===401?(TICKET='',S.user=null,(()=>{try{localStorage.removeItem('ks_me')}catch(e){}})(),'צריך להירשם מחדש כדי לשלוח. חזרו להתחלה והירשמו.'):r.status===429?'יותר מדי בקשות היום. נסו מחר.':'המפרט לא נשלח. נסו שוב.','addr')}
     S.order.no=r.d.no;S.order.total=r.d.total;S.order.saved=true;S.order.mailed=!!r.d.mailed}
   go('done');
 }
