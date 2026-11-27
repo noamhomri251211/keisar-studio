@@ -781,14 +781,16 @@ async function realistic(){
   if(VZ.busy)return;if(vizShown()){VZ.img='';keep();return}
   const key=vizKey(),pl=plan()||{},c=pictured(),p=S.pick;VZ.busy=true;keep();
   try{
+    const im0=new Image();im0.src=S.photo||'before.jpg';await im0.decode();const ar0=im0.naturalWidth/im0.naturalHeight,aspect=[['1:1',1],['4:3',4/3],['3:4',.75],['3:2',1.5],['2:3',2/3],['16:9',16/9],['9:16',9/16],['5:4',1.25],['4:5',.8]].sort((a,b)=>Math.abs(Math.log(a[1]/ar0))-Math.abs(Math.log(b[1]/ar0)))[0][0]; // the picture comes back in the photo's own shape
     const place=await jpegOf(S.photo||'before.jpg',1600),cl=S.add.cloth&&P[p.table].q!=='round';
     const want=[[p.table,P[p.table].q+(S.add.cloth?'-c'+tint('cloth'):'')],[p.chair,P[p.chair].q],...EXTRAS.filter(k=>c[k]).map(k=>[k,P[k].q+(k==='sofa'?tint('sofa'):'')])].slice(0,8);
     const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),mime:'image/jpeg',data:await jpegOf(src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
     const items=[`${c[p.table]} × ${P[p.table].n}${S.add.cloth?' ('+(cl?'עם מפה ':'')+'בצבע '+COLORS[S.col.cloth][0]+')':''}`,`${c[p.chair]} × ${P[p.chair].n}`,...EXTRAS.filter(k=>c[k]).map(k=>'1 × '+nameOf(k)),S.add.dish?`עריכת שולחן מלאה ל-${S.guests} סועדים`:''].filter(Boolean).join('; ');
     let sketch;if(S.photo&&S.plan){try{sketch=pasteUp()}catch(e){}}
-    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'styled',place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
+    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
     if(r.status===429)toast('הגענו למכסת התמונות להיום. נסו מחר');
-    else if(!r.ok||!d.image||d.provider==='mock')toast('ההדמיה לא נוצרה. אם יש בצילום אנשים, פנים או שלטים, נסו צילום אחר של המקום');
+    else if(r.status===422)toast('המנוע לא מעבד את הצילום הזה. אם יש בו אנשים, פנים או שלטים, נסו צילום אחר של המקום');
+    else if(!r.ok||!d.image||d.provider==='mock')toast('ההדמיה לא נוצרה. נסו שוב');
     else{VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key}
   }catch(e){toast('אין חיבור. נסו שוב')}
   VZ.busy=false;if(S.scr==='result')keep();
