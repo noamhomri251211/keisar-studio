@@ -464,6 +464,19 @@ input,select,textarea{-webkit-user-select:text;user-select:text;font-size:16px!i
 .grab{width:auto;height:34px;margin:-10px -22px 2px;background:none;border-radius:0;display:grid;place-items:center;touch-action:none;cursor:grab}
 .grab::before{content:"";width:44px;height:5px;border-radius:9px;background:#D6D2CB}
 .knob{width:52px;height:50px}
+
+/* polish pass: picture actions under the picture, waiting state, chat entry, photo choices */
+.vact{display:flex;gap:8px;margin:10px 0 0}.vb{flex:1;min-width:0;min-height:50px;border:0;border-radius:99px;background:var(--ink);color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 14px}.vb.alt{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}.vb.go{background:var(--accent);color:var(--on-accent,#1f1f1f)}.vb svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.vb[disabled]{opacity:.55}.vb:active{transform:scale(.98)}
+.vnote{text-align:start;margin:10px 2px 0;line-height:1.45}
+.vwait{position:absolute;inset:0;z-index:3200;display:grid;place-content:center;justify-items:center;gap:4px;text-align:center;padding:20px;background:rgba(16,16,20,.58);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff}.vwait b{font-size:17px}.vwait small{font-size:13px;opacity:.85}
+.vwait i{display:block;width:150px;height:4px;border-radius:9px;background:rgba(255,255,255,.25);overflow:hidden;position:relative;margin-bottom:10px}.vwait i::after{content:"";position:absolute;inset:0;background:#E0C39C;transform-origin:100% 50%;transform:scaleX(.03);animation:vfill 36s cubic-bezier(.3,.35,.5,1) var(--d,0s) forwards}@keyframes vfill{to{transform:scaleX(.95)}}
+@media(prefers-reduced-motion:reduce){.vwait i::after{animation:none;transform:scaleX(.5)}}
+.advc{display:flex;align-items:center;gap:12px;width:100%;text-align:start;border:0;background:var(--paper);color:var(--ink);border-radius:20px;padding:12px 14px;margin:0 0 12px;box-shadow:0 1px 0 var(--line)}.advc .t{flex:1;min-width:0;line-height:1.3}.advc b{display:block;font-size:15.5px}.advc small{color:var(--mute);font-size:13.5px}.advc>svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.advc:active{transform:scale(.99)}
+.alt{display:flex;gap:8px;margin-top:12px}.alt .lnk{flex:1;min-height:50px;display:grid;place-items:center;padding:0 12px;background:var(--paper);color:var(--ink);border-radius:99px;text-decoration:none;font-weight:600;font-size:15px;box-shadow:inset 0 0 0 1.5px var(--line)}
+.full .cb{font-size:15.5px;line-height:1.4;padding:10px 14px;border-radius:18px;border-start-start-radius:6px}.full .cb.me{border-start-start-radius:18px;border-start-end-radius:6px}.full .chat{gap:8px}
+.full .cin input{background:var(--paper);border-radius:99px;box-shadow:inset 0 0 0 1.5px var(--line)}.cin .snd{width:46px;height:46px;padding:0;border-radius:50%;background:var(--accent);color:var(--on-accent);box-shadow:none;display:grid;place-items:center}.snd svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.f textarea{resize:none}
+.full .styc{gap:8px;margin:10px 0 12px}.full .styc .chipb{min-height:44px;padding:0 16px;font-size:14.5px;background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--accent)}.full .styc .chipb:active{background:var(--accent);color:var(--on-accent)}
 </style>
 </head>
 <body>
@@ -815,7 +828,7 @@ const jpegOf=async(u,max,bg)=>{const im=new Image();if(/^https?:/.test(u))im.cro
 // layout sketch only when it rests on a real reading of the photo.
 async function realistic(again){ // again: the customer asked for another take of the same choices
   if(VZ.busy||(vizShown()&&!again))return;
-  const key=vizKey(),pl=plan()||{},c=pictured(),p=S.pick;VZ.busy=true;keep();
+  const key=vizKey(),pl=plan()||{},c=pictured(),p=S.pick;VZ.busy=true;VZ.t0=Date.now();keep();
   try{
     const im0=new Image();im0.src=S.photo||'before.jpg';await im0.decode();const ar0=im0.naturalWidth/im0.naturalHeight,aspect=[['1:1',1],['4:3',4/3],['3:4',.75],['3:2',1.5],['2:3',2/3],['16:9',16/9],['9:16',9/16],['5:4',1.25],['4:5',.8]].sort((a,b)=>Math.abs(Math.log(a[1]/ar0))-Math.abs(Math.log(b[1]/ar0)))[0][0]; // the picture comes back in the photo's own shape
     const place=await jpegOf(S.photo||'before.jpg',1600),cl=S.add.cloth&&P[p.table].q!=='round';
@@ -841,8 +854,9 @@ async function saveViz(){ // hand the picture to the phone's share sheet (save t
 function shot(mode){ // 'empty' | 'full' | 'toggle'
   if(mode==='toggle'&&VZ.on){ // with an image engine connected the event picture is the only view: no paste-up
     const cur=vizShown(),has=!!VZ.img;
-    const btn=VZ.busy?'<button class="ba vzb" disabled>מכינים הדמיה, כחצי דקה…</button>':has&&cur?'<button class="ba vzb" onclick="saveViz()">לשמור תמונה</button><button class="ba" onclick="realistic(1)">הדמיה נוספת</button>':`<button class="ba vzb go" onclick="realistic()">${has?'לעדכן את ההדמיה':'צור הדמיה לאירוע'}</button>`;
-    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${btn}</div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד. ההדמיה לא תמיד מדייקת בפריטים; מה שקובע הוא הרשימה שבחרתם.</p>`:`<div class="shot">${baseImg()}${btn}</div>`;
+    const wait=VZ.busy?`<div class="vwait" role="status"><i style="--d:-${((Date.now()-(VZ.t0||Date.now()))/1000).toFixed(1)}s"></i><b>מכינים את ההדמיה</b><small>זה לוקח כחצי דקה</small></div>`:'';
+    const act=VZ.busy?'<div class="vact"><button class="vb vzb" disabled>עוד רגע…</button></div>':has&&cur?'<div class="vact"><button class="vb vzb" onclick="saveViz()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>לשמור תמונה</button><button class="vb alt" onclick="realistic(1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></svg>הדמיה נוספת</button></div>':`<div class="vact"><button class="vb vzb go" onclick="realistic()">${has?'לעדכן את ההדמיה':'צור הדמיה לאירוע'}</button></div>`;
+    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${wait}</div>${act}<p class="vnote">ההדמיה להמחשה. עיצוב השולחנות (פרחים, נרות, כלים ותאורה) אינו כלול בציוד, והרשימה שבחרתם היא שקובעת.</p>`:`<div class="shot">${baseImg()}${wait}</div>${act}`;
   }
   if(mode==='toggle'&&vizShown())return `<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
   const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${(()=>{try{return sprites()}catch(e){return''}})()}</div>`;
@@ -886,7 +900,7 @@ guests:()=>`<h2>כמה אורחים?</h2>
  <div class="count"><button aria-label="אורח אחד פחות" ${S.guests<=MING?'disabled':''} data-step="-1" onclick="setGuests(-1)">−</button><b id="gnum">${S.guests}</b><button aria-label="אורח אחד יותר" ${S.guests>=MAXG?'disabled':''} data-step="1" onclick="setGuests(1)">+</button></div>
  <p class="gsub" id="gsub">${nTables()} שולחנות של ${SEATS}</p>
  <div class="slide"><span>${MING}</span><input id="g" type="range" min="${MING}" max="${MAXG}" step="1" value="${S.guests}" aria-label="מספר אורחים" oninput="S.guests=+this.value;$('gnum').textContent=this.value;$('gsub').textContent=nTables()+' שולחנות של '+SEATS" onchange="keep()"><span>${MAXG}</span></div>
- <div class="sty">${S.advice?`<p class="advd"><b>הותאם לכם:</b> ${esc(S.advice)}</p>`:''}<button class="chipb advb" onclick="openChat()">${S.advice?'להתאים מחדש':'לא בטוחים מה לבחור? נתאים לכם ריהוט בשיחה קצרה'}</button></div>
+ <div class="sty">${S.advice?`<p class="advd"><b>הותאם לכם:</b> ${esc(S.advice)}</p>`:''}<button class="advc advb" onclick="openChat()"><span class="cav" aria-hidden="true">ק</span><span class="t"><b>${S.advice?'להתאים מחדש':'לא בטוחים מה לבחור?'}</b><small>${S.advice?'עוד שיחה קצרה, ונבחר שוב':'שיחה קצרה, ונתאים לכם ריהוט'}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button></div>
  <div class="stack"><button class="btn" onclick="analyze()">להראות לי</button><button class="lnk" onclick="go('photo')">תמונה אחרת</button></div>`,
 scan:()=>`<h2>רגע, מסדרים.</h2>
  <div class="shot">${baseImg()}<div class="scanline"></div></div>
@@ -920,7 +934,7 @@ checkout:()=>{const t=totals();
  <p class="cap">נציג של קיסר אירועים עובר על המפרט ומחזיר לכם הצעת מחיר. כפוף לאישור זמינות.</p>
  <div class="bar"><div class="swipe" id="swipe"><span class="lab">החליקו כדי לשלוח לנציג</span><button class="knob" id="knob" aria-label="לשלוח לנציג" onclick="if(event.detail===0)placeOrder()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5l-7 7 7 7"/></svg></button></div></div>`},
 done:()=>{const o=S.order;return `<div class="done"><div class="tick"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 25l8 8 16-18"/></svg></div>
- <h2>המפרט נשלח</h2><p class="sub">בקשה מס׳ ${o.no}</p>${VZ.img?`<div class="shot vz" style="margin-bottom:16px"><img src="${VZ.img}" alt="הדמיה של האירוע"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="saveViz()">לשמור תמונה</button></div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד. ההדמיה לא תמיד מדייקת בפריטים; מה שקובע הוא הרשימה שבחרתם.</p>`:''}
+ <h2>המפרט נשלח</h2><p class="sub">בקשה מס׳ ${o.no}</p>${VZ.img?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של האירוע"><span class="vtag">הדמיה להמחשה</span></div><div class="vact"><button class="vb vzb" onclick="saveViz()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>לשמור תמונה</button></div><p class="vnote" style="margin-bottom:16px">ההדמיה להמחשה. עיצוב השולחנות (פרחים, נרות, כלים ותאורה) אינו כלול בציוד, והרשימה שבחרתם היא שקובעת.</p>`:''}
  <div class="recap"><div><span>מתי</span><b>${esc(o.dateText)}</b></div><div><span>איפה</span><b>${esc(o.addr)}</b></div><div><span>מה</span><b>${esc(o.what)}</b></div></div>
  <div class="trk" aria-hidden="true"><i class="d"></i><i class="a"></i><i></i><i></i></div>
  <ol class="next"><li class="done"><b>המפרט נשלח</b>עכשיו</li><li class="on"><b>נציג מכין הצעת מחיר</b>וחוזר אליכם במייל או בטלפון</li><li><b>מאשרים את ההצעה</b>ורק אז ההזמנה נסגרת</li><li><b>${esc(o.dateText)}</b>האירוע שלכם</li></ol>
@@ -972,7 +986,7 @@ function drawChat(){ // a full-screen chat: the studio "types", then asks; the c
   const n=CH.a.length,q=QS[n],last=n===QS.length-1,bub=(t,me)=>`<p class="cb${me?' me':''}">${esc(t)}</p>`,dots='<p class="cb dots" aria-label="מקליד"><i></i><i></i><i></i></p>';
   $('sheetBody').innerHTML=`<div class="chead"><span class="cav" aria-hidden="true">ק</span><div><b>קיסר סטודיו</b><small>${CH.typing||CH.busy?'מקליד…':'מחובר'}</small></div><button class="cx" aria-label="סגירת השיחה" onclick="closeSheet()">✕</button></div>
    <div class="chat" id="chat" aria-live="polite">${bub('היי! כמה שאלות קצרות ואני מתאים לכם ריהוט לאירוע.')}${CH.a.map((a,i)=>bub(QS[i][0])+bub(a,1)).join('')}${CH.busy?bub('מעולה, יש לי הכול. מכין לכם את האירוע…')+dots:CH.typing?dots:q?bub(q[0]):''}</div>
-   ${q&&!CH.typing&&!CH.busy?`<div class="styc">${q[1].map(o=>`<button class="chipb" onclick="answer(this.textContent)">${o}</button>`).join('')}</div><form class="cin" onsubmit="event.preventDefault();answer($('cti').value)"><input id="cti" type="text" maxlength="${last?300:120}" enterkeyhint="send" aria-label="${last?'בקשה במילים שלכם':'תשובה במילים שלכם'}" placeholder="${last?'כתבו כאן בקצרה מה חשוב לכם':'או כתבו במילים שלכם'}"><button class="chipb" aria-label="שליחה">שליחה</button></form>`:''}`;
+   ${q&&!CH.typing&&!CH.busy?`<div class="styc">${q[1].map(o=>`<button class="chipb" onclick="answer(this.textContent)">${o}</button>`).join('')}</div><form class="cin" onsubmit="event.preventDefault();answer($('cti').value)"><input id="cti" type="text" maxlength="${last?300:120}" enterkeyhint="send" aria-label="${last?'בקשה במילים שלכם':'תשובה במילים שלכם'}" placeholder="${last?'כתבו כאן בקצרה מה חשוב לכם':'או כתבו במילים שלכם'}"><button class="chipb snd" aria-label="שליחה"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg></button></form>`:''}`;
   const c=$('chat');c.scrollTop=c.scrollHeight;
 }
 function ruleAdvice(){ // the fallback: the same style rules as before, nudged by the seating and wish answers
