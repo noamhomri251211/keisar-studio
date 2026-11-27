@@ -194,6 +194,9 @@ select{width:100%;border:0;border-radius:16px;padding:14px;background:var(--stag
 .addon[aria-pressed="true"] .box::after{content:"";width:10px;height:6px;border:2.5px solid #fff;border-top:0;border-inline-end:0;transform:rotate(-45deg) translate(1px,-1px)}
 .head h2{font-size:28px;margin:10px 0 2px}
 .head p{margin:0;color:var(--mute);font-size:14px}
+.advb{width:100%;min-height:46px;white-space:normal;line-height:1.3;padding:8px 14px}.advd{font-size:13.5px;margin:0 0 8px;color:var(--ink)}
+.chat{display:flex;flex-direction:column;gap:6px;max-height:38vh;overflow-y:auto;margin:0 0 10px}.cb{margin:0;padding:9px 13px;border-radius:16px;background:var(--stage);max-width:85%;align-self:flex-start;font-size:15px}.cb.me{background:var(--accent);color:var(--on-accent);align-self:flex-end}#sheetBody .cb{margin:0;color:var(--ink)}#sheetBody .cb.me{color:var(--on-accent)}
+.cin{display:flex;gap:6px;margin:0 0 4px}.cin input{flex:1;min-width:0;border:0;border-radius:14px;padding:0 14px;min-height:46px;background:var(--stage);font-size:16px}.cin .chipb{flex:none}
 .sty{margin:10px 0 2px}.sty label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}.sty label small{color:var(--mute);font-weight:400}
 .sty input{display:block;width:100%;min-width:0;border:0;border-radius:14px;padding:0 14px;min-height:46px;background:var(--paper);box-shadow:0 1px 0 var(--line);-webkit-appearance:none;appearance:none}
 .styc{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
@@ -847,8 +850,7 @@ guests:()=>`<h2>כמה אורחים?</h2>
  <div class="count"><button aria-label="אורח אחד פחות" ${S.guests<=MING?'disabled':''} data-step="-1" onclick="setGuests(-1)">−</button><b id="gnum">${S.guests}</b><button aria-label="אורח אחד יותר" ${S.guests>=MAXG?'disabled':''} data-step="1" onclick="setGuests(1)">+</button></div>
  <p class="gsub" id="gsub">${nTables()} שולחנות של ${SEATS}</p>
  <div class="slide"><span>${MING}</span><input id="g" type="range" min="${MING}" max="${MAXG}" step="1" value="${S.guests}" aria-label="מספר אורחים" oninput="S.guests=+this.value;$('gnum').textContent=this.value;$('gsub').textContent=nTables()+' שולחנות של '+SEATS" onchange="keep()"><span>${MAXG}</span></div>
- <div class="sty"><label for="sty">איזה אירוע? <small>לא חובה</small></label><input id="sty" type="text" maxlength="40" placeholder="למשל: אירוע יווני, בוהו שיק" value="${esc(S.style)}" oninput="S.style=this.value;markStyle()">
- <div class="styc">${Object.entries(STYLES).map(([k,v])=>`<button class="chipb" data-k="${k}" aria-pressed="${styleOf()===k}" onclick="S.style=styleOf()==='${k}'?'':'${v.n}';keep()">${v.n}</button>`).join('')}</div></div>
+ <div class="sty">${S.advice?`<p class="advd"><b>הותאם לכם:</b> ${esc(S.advice)}</p>`:''}<button class="chipb advb" onclick="openChat()">${S.advice?'להתאים מחדש':'לא בטוחים מה לבחור? נתאים לכם ריהוט בשיחה קצרה'}</button></div>
  <div class="stack"><button class="btn" onclick="analyze()">להראות לי</button><button class="lnk" onclick="go('photo')">תמונה אחרת</button></div>`,
 scan:()=>`<h2>רגע, מסדרים.</h2>
  <div class="shot">${baseImg()}<div class="scanline"></div></div>
@@ -920,6 +922,34 @@ function openItem(id){
    ${no?'<button class="btn" disabled>אין מקום בתמונה הזו</button>':single?(sel?'<button class="btn" disabled>נבחר לאירוע</button>':`<button class="btn" onclick="choose('${id}')">לבחור${ITEM_PRICES?' · '+tot:''}</button>`):(sel?`<button class="btn dark" onclick="choose('${id}')">להסיר מהאירוע</button>`:`<button class="btn" onclick="choose('${id}')">להוסיף${ITEM_PRICES?' · '+tot:''}</button>`)}`;
   $('sheet').classList.add('open');
 }
+// ---- the short chat: four questions, tap an answer or type one, and the furniture is picked for the customer.
+// The picking is done by the server's AI from the live catalog; without it the simple rules below do the job.
+const ADVISE='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/advise';
+const QS=[['איזה אירוע אתם מתכננים?',['חתונה','בר/בת מצווה','אירוע חברה','יום הולדת']],['איך האורחים יושבים?',['ארוחה סביב שולחנות','קוקטייל ופינות ישיבה','גם וגם']],['איזו אווירה אתם רוצים?',['יווני','בוהו שיק','כפרי','קלאסי']],['מה חשוב לכם שיהיה?',['בר משקאות','פינת לאונג׳','צל ביום','לא משנה לי']]];
+const CH={a:[],busy:false,done:''};
+function openChat(){CH.a=[];CH.busy=false;CH.done='';drawChat();$('sheet').classList.add('open')}
+function drawChat(){
+  const n=CH.a.length,q=QS[n],bub=(t,me)=>`<p class="cb${me?' me':''}">${esc(t)}</p>`;
+  $('sheetBody').innerHTML=`<div class="grab"></div><h4>מתאימים לכם ריהוט</h4><div class="chat" id="chat" aria-live="polite">${CH.a.map((a,i)=>bub(QS[i][0])+bub(a,1)).join('')}${q?bub(q[0]):CH.busy?bub('רגע, מתאים לכם…'):bub(CH.done)}</div>
+   ${q?`<div class="styc">${q[1].map(o=>`<button class="chipb" onclick="answer(this.textContent)">${o}</button>`).join('')}</div><form class="cin" onsubmit="event.preventDefault();answer($('cti').value)"><input id="cti" type="text" maxlength="120" enterkeyhint="send" aria-label="תשובה במילים שלכם" placeholder="או כתבו במילים שלכם"><button class="chipb" aria-label="שליחה">שליחה</button></form>`:CH.busy?'':'<button class="btn" onclick="closeSheet();keep()">מעולה, להמשיך</button>'}`;
+  const c=$('chat');c.scrollTop=c.scrollHeight;
+}
+function ruleAdvice(){ // the fallback: the same style rules as before, nudged by the seating and wish answers
+  const t=CH.a.join(' '),k=Object.keys(STYLES).find(k=>STYLES[k].k.some(w=>t.toLowerCase().includes(w)))||(/חברה/.test(t)?'rustic':/חתונה/.test(t)?'classic':'boho'),v=STYLES[k],x={...v.x};
+  if(/קוקטייל|גם וגם/.test(t)){x.hibar=true;x.sofa=true}if(/בר משקאות/.test(t))x.bar=true;if(/לאונג/.test(t)){x.sofa=true;x.arm=true;x.coffee=true}if(/צל/.test(t))x.umb=true;
+  return{chair:v.chair,table:v.table,extras:Object.keys(x).filter(e=>x[e]),cloth:v.cloth,cloth_color:'white',reason:`בחרנו לכם ${P[v.chair].n} עם ${P[v.table].n}, בסגנון ${v.n}.`,style:v.n};
+}
+async function answer(v){
+  v=(v||'').trim();if(!v||CH.busy||CH.a.length>=QS.length)return;CH.a.push(v.slice(0,120));
+  if(CH.a.length<QS.length){drawChat();return}
+  CH.busy=true;drawChat();let d=null;
+  try{const r=await fetch(ADVISE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guests:S.guests,session:typeof SID==='string'?SID:'',answers:CH.a.map((a,i)=>({q:QS[i][0],a}))}),signal:AbortSignal.timeout(20000)});if(r.ok)d=await r.json()}catch(e){}
+  if(!d||!CHAIRS.includes(d.chair)||!TABLES.includes(d.table))d=ruleAdvice();
+  const x={};for(const e of EXTRAS)x[e]=(d.extras||[]).includes(e);
+  S.pick={chair:d.chair,table:d.table,x};S.add.cloth=!!d.cloth||P[d.table].q==='round';S.col.cloth=COLORS[d.cloth_color]?d.cloth_color:'white';
+  S.style=d.style||CH.a[2];S.advised=true;S.advice=d.reason||`בחרנו לכם ${P[d.chair].n} עם ${P[d.table].n}.`;
+  CH.busy=false;CH.done=S.advice+' אפשר לשנות כל פריט במסך הבא.';if($('sheet').classList.contains('open'))drawChat();
+}
 function openGuests(){
   $('sheetBody').innerHTML=`<div class="grab"></div><h4>כמה אורחים?</h4>
    <div class="count"><button aria-label="אורח אחד פחות" data-step="-1" onclick="bumpGuests(-1)">−</button><b id="g2n">${S.guests}</b><button aria-label="אורח אחד יותר" data-step="1" onclick="bumpGuests(1)">+</button></div>
@@ -970,13 +1000,13 @@ async function analyze(){
   if(plan&&plan.usable===false){S.busy=false;go('photo');toast(plan.reason||'לא מצאנו רצפה פנויה בתמונה. נסו תמונה אחרת.');return}
   S.plan=plan&&plan.cap?plan:null;
   mark(0,'done');mark(1,'on');await wait(d);mark(1,'done');mark(2,'on');await wait(d);mark(2,'done');await wait(250);
-  applyStyle();S.made=true;const asked=S.guests;S.guests=clampG(S.guests);
+  if(!S.advised)applyStyle();S.made=true;const asked=S.guests;S.guests=clampG(S.guests);
   S.busy=false;S.before=false;S.anim=true;go('result');S.anim=false;
   S.mv={};if(VZ.on)realistic(); // the event picture is made straight away
   if(S.guests<asked)toast(`במקום הזה נכנסים עד ${S.guests} אורחים`);
   else if(!S.hinted&&!VZ.on){S.hinted=true;toast('רוצים סידור אחר? לחצו על ״להזיז״ בתמונה')}
 }
-function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',before:false});go('home')}
+function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',advised:false,advice:'',before:false});go('home')}
 function go(s){if(S.busy&&s!=='scan')return;closeSheet();if(s!==S.scr)track('screen_'+s);S.scr=s;S.delta=0;S.move=false;render();const el=$('scr');el.scrollTop=0;el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter')}
 function render(){$('scr').innerHTML=V[S.scr]();document.querySelector('.phone').classList.toggle('home',S.scr==='home')}
 const GLYPH={dish:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>',crew:'<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M2.5 19c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M14 14c3.5-1 7 1 7 5"/></svg>'};
