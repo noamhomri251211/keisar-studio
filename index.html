@@ -551,7 +551,7 @@ const SID=Math.random().toString(36).slice(2,12);let TICKET='';
 const call=(action,body)=>fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,session:SID,ticket:TICKET||undefined,...body})}).then(async r=>({ok:r.ok,status:r.status,d:await r.json().catch(()=>({}))}));
 const track=(name,props)=>{if(LIVE)call('event',{name,props}).catch(()=>{})};
 var SAVED=null;try{SAVED=sessionStorage.getItem('ks_s')}catch(e){} // read before the first screen is drawn and overwrites it
-var KEEP=['guests','area','addr','date','pick','add','col','style','note','advised','advice','made'];
+var KEEP=['guests','area','addr','date','pick','add','col','style','note','advised','advice','made','job','jobKey','vid','vidKey'];
 function stash(){ // the event survives a refresh of this tab; the picture itself is made again on request
   try{if(!LIVE||!KEEP)return;const o={scr:['result','checkout'].includes(S.scr)?'result':S.scr==='guests'?'guests':'',sample:!S.photo};for(const k of KEEP)o[k]=S[k];sessionStorage.setItem('ks_s',JSON.stringify(o))}catch(e){}
 }
@@ -561,7 +561,7 @@ if(LIVE){document.documentElement.classList.add('hosted');setTimeout(()=>{ // af
   try{const o=JSON.parse(SAVED||'null'),ph=sessionStorage.getItem('ks_ph');
     if(o&&o.scr&&S.user&&(o.sample||ph)&&o.pick&&CHAIRS.includes(o.pick.chair)&&TABLES.includes(o.pick.table)){
       for(const k of KEEP)if(k in o)S[k]=o[k];S.guests=Math.min(MAXG,Math.max(MING,Math.round(+S.guests)||30));S.photo=o.sample?null:'data:image/jpeg;base64,'+ph;
-      go(o.scr==='result'&&S.made?'result':'guests')}}catch(e){}
+      go(o.scr==='result'&&S.made?'result':'guests');if(S.scr==='result'){if(o.job)recover(o.job,o.jobKey,22);else if(o.vid)recover(o.vid,o.vidKey,1)}}}catch(e){}
 },0)}
 // Names, prices and what is on offer come from the catalog Caesar's staff edit; the pictures stay with the app.
 if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=id,kind,name,description,price_ils,active,image_url,width_m,depth_m,height_m&order=sort',{headers:{apikey:'sb_publishable_194S1a54eAtumboQ1UBBrA_k11UDLzD'}}).then(r=>r.ok?r.json():[]).then(rows=>{
@@ -829,7 +829,7 @@ const jpegOf=async(u,max,bg)=>{const im=new Image();if(/^https?:/.test(u))im.cro
 // layout sketch only when it rests on a real reading of the photo.
 async function realistic(again){ // again: the customer asked for another take of the same choices
   if(VZ.busy||(vizShown()&&!again))return;
-  const key=vizKey(),pl=plan()||{},c=pictured(),p=S.pick;VZ.busy=true;VZ.t0=Date.now();keep();
+  const key=vizKey(),pl=plan()||{},c=pictured(),p=S.pick,job=uuid();VZ.busy=true;VZ.err='';VZ.t0=Date.now();keep();let sent=false;
   try{
     const im0=new Image();im0.src=S.photo||'before.jpg';await im0.decode();const ar0=im0.naturalWidth/im0.naturalHeight,aspect=[['1:1',1],['4:3',4/3],['3:4',.75],['3:2',1.5],['2:3',2/3],['16:9',16/9],['9:16',9/16],['5:4',1.25],['4:5',.8]].sort((a,b)=>Math.abs(Math.log(a[1]/ar0))-Math.abs(Math.log(b[1]/ar0)))[0][0]; // the picture comes back in the photo's own shape
     const place=await jpegOf(S.photo||'before.jpg',1600),cl=S.add.cloth&&P[p.table].q!=='round';
@@ -837,14 +837,28 @@ async function realistic(again){ // again: the customer asked for another take o
     const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),desc:(P[id].d||'').slice(0,120),qty:c[id]||1,mime:'image/jpeg',data:await jpegOf(P[id].img||src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
     const items=[`${c[p.table]} × ${P[p.table].n}${S.add.cloth?' ('+(cl?'עם מפה ':'')+'בצבע '+COLORS[S.col.cloth][0]+')':''}`,`${c[p.chair]} × ${P[p.chair].n}`,...EXTRAS.filter(k=>c[k]).map(k=>'1 × '+nameOf(k)),S.add.dish?`עריכת שולחן מלאה ל-${S.guests} סועדים`:''].filter(Boolean).join('; ');
     let sketch;if(S.photo&&S.plan){try{sketch=pasteUp()}catch(e){}}
-    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. Exactly ${c[p.table]} dining tables and ${c[p.chair]} chairs in total, at most ${Math.ceil(c[p.chair]/c[p.table])} chairs at each table. Do not draw more tables or chairs than that and do not make the tables longer than their product photo; a small event stays small even in a large space. ${items}`,style:S.style||'',note:S.note||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
-    if(r.status===429)toast('הגענו למכסת התמונות להיום. נסו מחר');
-    else if(r.status===401)toast('צריך להירשם כדי ליצור הדמיה. חזרו להתחלה והירשמו');
-    else if(r.status===422)toast('המנוע לא מעבד את הצילום הזה. אם יש בו אנשים, פנים או שלטים, נסו צילום אחר של המקום');
-    else if(!r.ok||!d.image||d.provider==='mock')toast('ההדמיה לא נוצרה. נסו שוב');
-    else{VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key;VZ.id=d.id||''}
-  }catch(e){toast('אין חיבור. נסו שוב')}
-  VZ.busy=false;if(S.scr==='result')keep();
+    S.job=job;S.jobKey=key;stash();sent=true;
+    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,job,mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. Exactly ${c[p.table]} dining tables and ${c[p.chair]} chairs in total, at most ${Math.ceil(c[p.chair]/c[p.table])} chairs at each table. Do not draw more tables or chairs than that and do not make the tables longer than their product photo; a small event stays small even in a large space. ${items}`,style:S.style||'',note:S.note||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
+    S.job='';
+    if(r.status===429)VZ.err='הגענו למכסת ההדמיות להיום. נסו שוב מחר.';
+    else if(r.status===401)VZ.err='צריך להירשם כדי ליצור הדמיה. חזרו להתחלה והירשמו.';
+    else if(r.status===422)VZ.err='המנוע לא מעבד את הצילום הזה. אם יש בו אנשים, פנים או שלטים, נסו צילום אחר של המקום.';
+    else if(!r.ok||!d.image||d.provider==='mock')VZ.err='משהו השתבש בדרך. נסו שוב.';
+    else{VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key;VZ.id=d.id||'';S.vid=VZ.id;S.vidKey=key}
+    stash();
+  }catch(e){if(sent){VZ.busy=false;return recover(job,key,22)}VZ.err='אין חיבור. בדקו את הרשת ונסו שוב.'} // the phone dropped the request (app switched, screen locked): the server may still finish it
+  VZ.busy=false;if(VZ.err)toast(VZ.err);if(S.scr==='result')keep();
+}
+function uuid(){try{return crypto.randomUUID()}catch(e){return'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16))}}
+// Pick up a picture the server made (or is still making) for this event: after a dropped connection or a reload of the page.
+async function recover(id,key,tries){
+  if(VZ.busy||!id||!LIVE)return;VZ.busy=true;VZ.err='';if(!VZ.t0||tries===1)VZ.t0=Date.now();if(S.scr==='result')keep();let got=false;
+  for(let i=0;i<tries&&!got;i++){
+    try{const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,fetch:id})}),d=await r.json();
+      if(r.ok&&d.image){VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key;VZ.id=id;S.vid=id;S.vidKey=key;got=true}else if(r.status!==404)break}catch(e){}
+    if(!got&&i<tries-1)await new Promise(r=>setTimeout(r,4000));
+  }
+  S.job='';if(!got){S.vid='';if(tries>1)VZ.err='ההדמיה לא הגיעה. נסו שוב.'}stash();VZ.busy=false;if(S.scr==='result')keep();
 }
 async function saveViz(){ // hand the picture to the phone's share sheet (save to photos, WhatsApp...) or download it
   try{const b=await(await fetch(VZ.img)).blob(),f=new File([b],'keisar-event.jpg',{type:b.type||'image/jpeg'});
@@ -857,7 +871,7 @@ function shot(mode){ // 'empty' | 'full' | 'toggle'
     const cur=vizShown(),has=!!VZ.img;
     const wait=VZ.busy?`<div class="vwait" role="status"><i style="--d:-${((Date.now()-(VZ.t0||Date.now()))/1000).toFixed(1)}s"></i><b>מכינים את ההדמיה</b><small>זה לוקח בין חצי דקה לדקה</small></div>`:'';
     const act=VZ.busy?'<div class="vact"><button class="vb vzb" disabled>עוד רגע…</button></div>':has&&cur?'<div class="vact"><button class="vb vzb" onclick="saveViz()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>לשמור תמונה</button><button class="vb alt" onclick="realistic(1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></svg>הדמיה נוספת</button></div>':`<div class="vact"><button class="vb vzb go" onclick="realistic()">${has?'לעדכן את ההדמיה':'צור הדמיה לאירוע'}</button></div>`;
-    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${wait}</div>${act}<p class="vnote">ההדמיה להמחשה. עיצוב השולחנות (פרחים, נרות, כלים ותאורה) אינו כלול בציוד, והרשימה שבחרתם היא שקובעת.</p>`:`<div class="shot">${baseImg()}${wait}</div>${act}`;
+    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${wait}</div>${act}<p class="vnote">ההדמיה להמחשה. עיצוב השולחנות (פרחים, נרות, כלים ותאורה) אינו כלול בציוד, והרשימה שבחרתם היא שקובעת.</p>`:`<div class="shot">${baseImg()}${wait}${!VZ.busy&&VZ.err?`<div class="vwait" role="alert"><b>ההדמיה לא נוצרה</b><small>${VZ.err}</small></div>`:''}</div>${VZ.err&&!VZ.busy?'<div class="vact"><button class="vb vzb go" onclick="realistic()">לנסות שוב</button></div>':act}`;
   }
   if(mode==='toggle'&&vizShown())return `<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
   const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${(()=>{try{return sprites()}catch(e){return''}})()}</div>`;
@@ -1063,7 +1077,7 @@ async function analyze(){
   if(S.guests<asked)toast(`במקום הזה נכנסים עד ${S.guests} אורחים`);
   else if(!S.hinted&&!VZ.on){S.hinted=true;toast('רוצים סידור אחר? לחצו על ״להזיז״ בתמונה')}
 }
-function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);try{sessionStorage.removeItem('ks_ph')}catch(e){}VZ.img='';VZ.id='';Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',note:'',advised:false,advice:'',before:false});go('home')}
+function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);try{sessionStorage.removeItem('ks_ph')}catch(e){}VZ.img='';VZ.id='';Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',note:'',job:'',vid:'',advised:false,advice:'',before:false});go('home')}
 function go(s){if(S.busy&&s!=='scan')return;closeSheet();if(s!==S.scr)track('screen_'+s);S.scr=s;S.delta=0;S.move=false;render();const el=$('scr');el.scrollTop=0;el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter')}
 function render(){stash();$('scr').innerHTML=V[S.scr]();document.querySelector('.phone').classList.toggle('home',S.scr==='home')}
 const GLYPH={dish:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>',crew:'<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M2.5 19c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M14 14c3.5-1 7 1 7 5"/></svg>'};
