@@ -148,7 +148,7 @@ select{width:100%;border:0;border-radius:16px;padding:14px;background:var(--stag
 .back{padding:0 0 4px;display:block}
 .f{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .f label{font-size:13px;font-weight:600;color:var(--mute);margin-top:4px}
-.f input,.f select{min-width:0;max-width:100%}.f input{display:block;-webkit-appearance:none;appearance:none;text-align:start;width:100%;border:0;border-radius:16px;padding:14px;background:var(--stage);min-height:50px}
+.f input,.f select{min-width:0;max-width:100%}.f textarea{display:block;width:100%;border:0;border-radius:16px;padding:14px;background:var(--bg);font:inherit;color:inherit;resize:vertical;min-height:72px}.f input{display:block;-webkit-appearance:none;appearance:none;text-align:start;width:100%;border:0;border-radius:16px;padding:14px;background:var(--stage);min-height:50px}
 .inc{list-style:none;padding:0;margin:0;display:grid;gap:8px;font-size:14.5px}
 .inc li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start}
 .inc li b{font-weight:600}
@@ -537,7 +537,7 @@ const SID=Math.random().toString(36).slice(2,12);let TICKET='';
 const call=(action,body)=>fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,session:SID,ticket:TICKET||undefined,...body})}).then(async r=>({ok:r.ok,status:r.status,d:await r.json().catch(()=>({}))}));
 const track=(name,props)=>{if(LIVE)call('event',{name,props}).catch(()=>{})};
 var SAVED=null;try{SAVED=sessionStorage.getItem('ks_s')}catch(e){} // read before the first screen is drawn and overwrites it
-var KEEP=['guests','area','addr','date','pick','add','col','style','advised','advice','made'];
+var KEEP=['guests','area','addr','date','pick','add','col','style','note','advised','advice','made'];
 function stash(){ // the event survives a refresh of this tab; the picture itself is made again on request
   try{if(!LIVE||!KEEP)return;const o={scr:['result','checkout'].includes(S.scr)?'result':S.scr==='guests'?'guests':'',sample:!S.photo};for(const k of KEEP)o[k]=S[k];sessionStorage.setItem('ks_s',JSON.stringify(o))}catch(e){}
 }
@@ -584,7 +584,7 @@ const tint=id=>S.col[id]==='white'?'':'-'+S.col[id],nameOf=id=>P[id].n+(S.col[id
 const swatches=id=>`<div class="sw" role="radiogroup" aria-label="צבע">${Object.entries(COLORS).map(([k,[n,c]])=>`<button role="radio" aria-label="${n}" aria-checked="${S.col[id]===k}" style="--c:${c}" onclick="pickColor('${id}','${k}')"></button>`).join('')}<small>${COLORS[S.col[id]][0]}</small></div>`;
 function pickColor(id,k){S.col[id]=k;if(k!=='white')for(const q of id==='sofa'?['sofa']:['oak-c','oval-c','xt-c','knight-c'])for(const v of['sun','far']){const im=new Image();im.src=src(q+'-'+k,v);warm.push(im)}keep()}
 const fresh=()=>({table:TABLES.includes('tb-oak')?'tb-oak':TABLES[0],chair:CHAIRS.includes('ch-byron')?'ch-byron':CHAIRS[0],x:{sofa:true,bar:true,hibar:true}});
-const S={scr:'home',made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',user:null,phone:'',style:'',hinted:false,delta:0,before:false,anim:false};
+const S={scr:'home',made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',user:null,phone:'',style:'',note:'',hinted:false,delta:0,before:false,anim:false};
 const $=id=>document.getElementById(id);
 const nis=n=>'₪'+Math.round(n).toLocaleString('he-IL');
 const plan=()=>S.photo?S.plan:SAMPLE;
@@ -823,7 +823,7 @@ async function realistic(again){ // again: the customer asked for another take o
     const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),qty:c[id]||1,mime:'image/jpeg',data:await jpegOf(P[id].img||src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
     const items=[`${c[p.table]} × ${P[p.table].n}${S.add.cloth?' ('+(cl?'עם מפה ':'')+'בצבע '+COLORS[S.col.cloth][0]+')':''}`,`${c[p.chair]} × ${P[p.chair].n}`,...EXTRAS.filter(k=>c[k]).map(k=>'1 × '+nameOf(k)),S.add.dish?`עריכת שולחן מלאה ל-${S.guests} סועדים`:''].filter(Boolean).join('; ');
     let sketch;if(S.photo&&S.plan){try{sketch=pasteUp()}catch(e){}}
-    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
+    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. Exactly ${c[p.table]} dining tables and ${c[p.chair]} chairs in total, at most ${Math.ceil(c[p.chair]/c[p.table])} chairs at each table. Do not draw more tables or chairs than that and do not make the tables longer than their product photo; a small event stays small even in a large space. ${items}`,style:S.style||'',note:S.note||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
     if(r.status===429)toast('הגענו למכסת התמונות להיום. נסו מחר');
     else if(r.status===401)toast('צריך להירשם כדי ליצור הדמיה. חזרו להתחלה והירשמו');
     else if(r.status===422)toast('המנוע לא מעבד את הצילום הזה. אם יש בו אנשים, פנים או שלטים, נסו צילום אחר של המקום');
@@ -910,6 +910,7 @@ checkout:()=>{const t=totals();
  <div class="lbl"><span>לאן ומתי</span></div>
  <div class="f"><label for="area">אזור</label><select id="area" onchange="S.area=this.value;keep()">${Object.entries(AREAS).map(([k,v])=>`<option value="${k}" ${S.area===k?'selected':''}>${v[0]}</option>`).join('')}</select>
  <label for="addr">כתובת האירוע</label><input id="addr" autocomplete="street-address" placeholder="רחוב, מספר, יישוב" value="${esc(S.addr)}" oninput="S.addr=this.value;$('cerr').textContent=''">
+ <label for="note">בקשה מיוחדת לנציג (לא חובה)</label><textarea id="note" rows="2" maxlength="300" placeholder="למשל: שולחן אבירים ארוך במרכז" oninput="S.note=this.value;stash()">${esc(S.note||'')}</textarea>
  <label for="date">תאריך האירוע</label><input id="date" type="date" min="${today()}" value="${esc(S.date)}" oninput="S.date=this.value;$('cerr').textContent=''"></div>
  <div class="lbl"><span>מה כלול</span></div>
  <ul class="inc"><li>הובלה ופריקה בסמוך למשאית</li>${A.crew?'<li>צוות שנושא את הציוד ומסדר אותו במקום</li>':''}<li>איסוף ביום שאחרי האירוע, מאותה נקודה</li><li>ניקוי הציוד אחרי השימוש</li></ul>
@@ -961,28 +962,30 @@ function openItem(id){
 // ---- the short chat: four questions, tap an answer or type one, and the furniture is picked for the customer.
 // The picking is done by the server's AI from the live catalog; without it the simple rules below do the job.
 const ADVISE='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/advise';
-const QS=[['איזה אירוע אתם מתכננים?',['חתונה','בר/בת מצווה','אירוע חברה','יום הולדת']],['איך האורחים יושבים?',['ארוחה סביב שולחנות','קוקטייל ופינות ישיבה','גם וגם']],['איזו אווירה אתם רוצים?',['יווני','בוהו שיק','כפרי','קלאסי']],['מה חשוב לכם שיהיה?',['בר משקאות','פינת לאונג׳','צל ביום','לא משנה לי']]];
+const QS=[['איזה אירוע אתם מתכננים?',['חתונה','בר/בת מצווה','אירוע חברה','יום הולדת']],['איך האורחים יושבים?',['ארוחה סביב שולחנות','קוקטייל ופינות ישיבה','גם וגם']],['איזו אווירה אתם רוצים?',['יווני','בוהו שיק','כפרי','קלאסי']],['מה חשוב לכם שיהיה?',['בר משקאות','פינת לאונג׳','צל ביום','לא משנה לי']],['רוצים להוסיף משהו במילים שלכם? למשל: שולחן אבירים ארוך במרכז, או פינת ישיבה ליד הבר.',['אין, אפשר להמשיך']]];
+const NOSKIP='אין, אפשר להמשיך';
 const CH={a:[],busy:false,typing:false};
 const chatDelay=()=>matchMedia('(prefers-reduced-motion:reduce)').matches?80:750;
 function openChat(){CH.a=[];CH.busy=false;CH.typing=true;$('sheetBody').classList.add('full');drawChat();$('sheet').classList.add('open');setTimeout(()=>{CH.typing=false;if(chatOpen())drawChat()},chatDelay())}
 const chatOpen=()=>$('sheet').classList.contains('open')&&$('sheetBody').classList.contains('full');
 function drawChat(){ // a full-screen chat: the studio "types", then asks; the customer taps or writes an answer
-  const n=CH.a.length,q=QS[n],bub=(t,me)=>`<p class="cb${me?' me':''}">${esc(t)}</p>`,dots='<p class="cb dots" aria-label="מקליד"><i></i><i></i><i></i></p>';
+  const n=CH.a.length,q=QS[n],last=n===QS.length-1,bub=(t,me)=>`<p class="cb${me?' me':''}">${esc(t)}</p>`,dots='<p class="cb dots" aria-label="מקליד"><i></i><i></i><i></i></p>';
   $('sheetBody').innerHTML=`<div class="chead"><span class="cav" aria-hidden="true">ק</span><div><b>קיסר סטודיו</b><small>${CH.typing||CH.busy?'מקליד…':'מחובר'}</small></div><button class="cx" aria-label="סגירת השיחה" onclick="closeSheet()">✕</button></div>
    <div class="chat" id="chat" aria-live="polite">${bub('היי! כמה שאלות קצרות ואני מתאים לכם ריהוט לאירוע.')}${CH.a.map((a,i)=>bub(QS[i][0])+bub(a,1)).join('')}${CH.busy?bub('מעולה, יש לי הכול. מכין לכם את האירוע…')+dots:CH.typing?dots:q?bub(q[0]):''}</div>
-   ${q&&!CH.typing&&!CH.busy?`<div class="styc">${q[1].map(o=>`<button class="chipb" onclick="answer(this.textContent)">${o}</button>`).join('')}</div><form class="cin" onsubmit="event.preventDefault();answer($('cti').value)"><input id="cti" type="text" maxlength="120" enterkeyhint="send" aria-label="תשובה במילים שלכם" placeholder="או כתבו במילים שלכם"><button class="chipb" aria-label="שליחה">שליחה</button></form>`:''}`;
+   ${q&&!CH.typing&&!CH.busy?`<div class="styc">${q[1].map(o=>`<button class="chipb" onclick="answer(this.textContent)">${o}</button>`).join('')}</div><form class="cin" onsubmit="event.preventDefault();answer($('cti').value)"><input id="cti" type="text" maxlength="${last?300:120}" enterkeyhint="send" aria-label="${last?'בקשה במילים שלכם':'תשובה במילים שלכם'}" placeholder="${last?'כתבו כאן בקצרה מה חשוב לכם':'או כתבו במילים שלכם'}"><button class="chipb" aria-label="שליחה">שליחה</button></form>`:''}`;
   const c=$('chat');c.scrollTop=c.scrollHeight;
 }
 function ruleAdvice(){ // the fallback: the same style rules as before, nudged by the seating and wish answers
-  const t=CH.a.join(' '),k=Object.keys(STYLES).find(k=>STYLES[k].k.some(w=>t.toLowerCase().includes(w)))||(/חברה/.test(t)?'rustic':/חתונה/.test(t)?'classic':'boho'),v=STYLES[k],x={...v.x};
+  const t=CH.a.filter(a=>a!==NOSKIP).join(' '),k=Object.keys(STYLES).find(k=>STYLES[k].k.some(w=>t.toLowerCase().includes(w)))||(/חברה/.test(t)?'rustic':/חתונה/.test(t)?'classic':'boho'),v=STYLES[k],x={...v.x};
   if(/קוקטייל|גם וגם/.test(t)){x.hibar=true;x.sofa=true}if(/בר משקאות/.test(t))x.bar=true;if(/לאונג/.test(t)){x.sofa=true;x.arm=true;x.coffee=true}if(/צל/.test(t))x.umb=true;
-  return{chair:v.chair,table:v.table,extras:Object.keys(x).filter(e=>x[e]),cloth:v.cloth,cloth_color:'white',reason:`בחרנו לכם ${P[v.chair].n} עם ${P[v.table].n}, בסגנון ${v.n}.`,style:v.n};
+  const tb=/אבירים/.test(t)?'tb-knight':/עגול/.test(t)?'tb-round':v.table;
+  return{chair:v.chair,table:tb,extras:Object.keys(x).filter(e=>x[e]),cloth:v.cloth,cloth_color:'white',reason:`בחרנו לכם ${P[v.chair].n} עם ${P[tb].n}, בסגנון ${v.n}.`,style:v.n};
 }
 async function answer(v){
-  v=(v||'').trim();if(!v||CH.busy||CH.typing||CH.a.length>=QS.length)return;CH.a.push(v.slice(0,120));
+  v=(v||'').trim();if(!v||CH.busy||CH.typing||CH.a.length>=QS.length)return;CH.a.push(v.slice(0,CH.a.length===QS.length-1?300:120));
   if(CH.a.length<QS.length){CH.typing=true;drawChat();setTimeout(()=>{CH.typing=false;if(chatOpen())drawChat()},chatDelay());return}
-  CH.busy=true;drawChat();let d=null;
-  try{const r=await fetch(ADVISE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,guests:S.guests,session:typeof SID==='string'?SID:'',answers:CH.a.map((a,i)=>({q:QS[i][0],a}))}),signal:AbortSignal.timeout(20000)});if(r.ok)d=await r.json()}catch(e){}
+  S.note=CH.a[QS.length-1]===NOSKIP?'':CH.a[QS.length-1];CH.busy=true;drawChat();let d=null;
+  try{const r=await fetch(ADVISE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,guests:S.guests,session:typeof SID==='string'?SID:'',answers:CH.a.slice(0,QS.length-1).map((a,i)=>({q:QS[i][0],a})),note:S.note||undefined}),signal:AbortSignal.timeout(20000)});if(r.ok)d=await r.json()}catch(e){}
   if(!d||!CHAIRS.includes(d.chair)||!TABLES.includes(d.table))d=ruleAdvice();
   const x={};for(const e of EXTRAS)x[e]=(d.extras||[]).includes(e);
   S.pick={chair:d.chair,table:d.table,x};S.add.cloth=!!d.cloth||P[d.table].q==='round';S.col.cloth=COLORS[d.cloth_color]?d.cloth_color:'white';
@@ -1045,7 +1048,7 @@ async function analyze(){
   if(S.guests<asked)toast(`במקום הזה נכנסים עד ${S.guests} אורחים`);
   else if(!S.hinted&&!VZ.on){S.hinted=true;toast('רוצים סידור אחר? לחצו על ״להזיז״ בתמונה')}
 }
-function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);try{sessionStorage.removeItem('ks_ph')}catch(e){}VZ.img='';VZ.id='';Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',advised:false,advice:'',before:false});go('home')}
+function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);try{sessionStorage.removeItem('ks_ph')}catch(e){}VZ.img='';VZ.id='';Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',note:'',advised:false,advice:'',before:false});go('home')}
 function go(s){if(S.busy&&s!=='scan')return;closeSheet();if(s!==S.scr)track('screen_'+s);S.scr=s;S.delta=0;S.move=false;render();const el=$('scr');el.scrollTop=0;el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter')}
 function render(){stash();$('scr').innerHTML=V[S.scr]();document.querySelector('.phone').classList.toggle('home',S.scr==='home')}
 const GLYPH={dish:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>',crew:'<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M2.5 19c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M14 14c3.5-1 7 1 7 5"/></svg>'};
@@ -1059,7 +1062,7 @@ async function placeOrder(){
   const c=pictured(),p=S.pick,[y,m,d]=S.date.split('-'),nx=new Date(+y,+m-1,+d+1);
   S.order={no:'D-'+(1000+Math.floor(Math.random()*9000)),addr,dateText:`${+d}.${+m}.${y}`,nextText:`${nx.getDate()}.${nx.getMonth()+1}.${nx.getFullYear()}`,total:totals().total,what:`${c[p.table]} שולחנות, ${c[p.chair]} כיסאות${EXTRAS.filter(k=>c[k]).map(k=>', '+P[k].s).join('')}${c.cloth?', מפות':''}${S.add.dish?', כלי אוכל':''}${S.add.crew?', צוות סידור':''}`};
   if(LIVE){ // the server prices the order itself from the catalog; its number and total are the ones shown
-    S.busy=true;let r=null;try{r=await call('order',{order:{guests:S.guests,area:S.area,address:addr,event_date:S.date,style:S.style,pay_method:S.pay,viz:vizShown()&&VZ.id?VZ.id:undefined,lines:lines().map(l=>({id:l.id,color:S.col[l.id]&&S.col[l.id]!=='white'?S.col[l.id]:undefined}))}})}catch(e){}S.busy=false;
+    S.busy=true;let r=null;try{r=await call('order',{order:{guests:S.guests,area:S.area,address:addr,event_date:S.date,style:S.style,note:(S.note||'').trim()||undefined,pay_method:S.pay,viz:vizShown()&&VZ.id?VZ.id:undefined,lines:lines().map(l=>({id:l.id,color:S.col[l.id]&&S.col[l.id]!=='white'?S.col[l.id]:undefined}))}})}catch(e){}S.busy=false;
     if(!r||!r.ok||!r.d.no){S.order=null;return fail(!r?'אין חיבור. המפרט לא נשלח, נסו שוב.':r.status===401?(TICKET='',S.user=null,(()=>{try{localStorage.removeItem('ks_me')}catch(e){}})(),'צריך להירשם מחדש כדי לשלוח. חזרו להתחלה והירשמו.'):r.status===429?'יותר מדי בקשות היום. נסו מחר.':'המפרט לא נשלח. נסו שוב.','addr')}
     S.order.no=r.d.no;S.order.total=r.d.total;S.order.saved=true;S.order.mailed=!!r.d.mailed}
   go('done');
