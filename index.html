@@ -196,6 +196,13 @@ select{width:100%;border:0;border-radius:16px;padding:14px;background:var(--stag
 .head p{margin:0;color:var(--mute);font-size:14px}
 .advb{width:100%;min-height:46px;white-space:normal;line-height:1.3;padding:8px 14px}.advd{font-size:13.5px;margin:0 0 8px;color:var(--ink)}
 .chat{display:flex;flex-direction:column;gap:6px;max-height:38vh;overflow-y:auto;margin:0 0 10px}.cb{margin:0;padding:9px 13px;border-radius:16px;background:var(--stage);max-width:85%;align-self:flex-start;font-size:15px}.cb.me{background:var(--accent);color:var(--on-accent);align-self:flex-end}#sheetBody .cb{margin:0;color:var(--ink)}#sheetBody .cb.me{color:var(--on-accent)}
+.sheet>div.full{height:100%;max-height:none;border-radius:0;display:flex;flex-direction:column;padding-top:max(14px,env(safe-area-inset-top))}
+.full .chat{flex:1;max-height:none;justify-content:flex-end;padding:8px 0}.full .chat>:first-child{margin-top:auto!important}.full .chat{justify-content:flex-start}
+.chead{display:flex;align-items:center;gap:10px;padding:0 0 10px;border-bottom:1px solid var(--line)}.chead div{flex:1;line-height:1.25}.chead b{display:block}.chead small{color:var(--mute);font-size:12.5px}
+.cav{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:800}
+.cx{width:44px;height:44px;border:0;border-radius:50%;background:var(--stage);font-size:16px}
+.cb.dots{display:flex;gap:4px;padding:14px}.cb.dots i{width:7px;height:7px;border-radius:50%;background:var(--mute);animation:cdot 1s infinite}.cb.dots i:nth-child(2){animation-delay:.15s}.cb.dots i:nth-child(3){animation-delay:.3s}
+@keyframes cdot{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}@media(prefers-reduced-motion:reduce){.cb.dots i{animation:none}}
 .cin{display:flex;gap:6px;margin:0 0 4px}.cin input{flex:1;min-width:0;border:0;border-radius:14px;padding:0 14px;min-height:46px;background:var(--stage);font-size:16px}.cin .chipb{flex:none}
 .sty{margin:10px 0 2px}.sty label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}.sty label small{color:var(--mute);font-weight:400}
 .sty input{display:block;width:100%;min-width:0;border:0;border-radius:14px;padding:0 14px;min-height:46px;background:var(--paper);box-shadow:0 1px 0 var(--line);-webkit-appearance:none;appearance:none}
@@ -926,12 +933,15 @@ function openItem(id){
 // The picking is done by the server's AI from the live catalog; without it the simple rules below do the job.
 const ADVISE='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/advise';
 const QS=[['איזה אירוע אתם מתכננים?',['חתונה','בר/בת מצווה','אירוע חברה','יום הולדת']],['איך האורחים יושבים?',['ארוחה סביב שולחנות','קוקטייל ופינות ישיבה','גם וגם']],['איזו אווירה אתם רוצים?',['יווני','בוהו שיק','כפרי','קלאסי']],['מה חשוב לכם שיהיה?',['בר משקאות','פינת לאונג׳','צל ביום','לא משנה לי']]];
-const CH={a:[],busy:false,done:''};
-function openChat(){CH.a=[];CH.busy=false;CH.done='';drawChat();$('sheet').classList.add('open')}
-function drawChat(){
-  const n=CH.a.length,q=QS[n],bub=(t,me)=>`<p class="cb${me?' me':''}">${esc(t)}</p>`;
-  $('sheetBody').innerHTML=`<div class="grab"></div><h4>מתאימים לכם ריהוט</h4><div class="chat" id="chat" aria-live="polite">${CH.a.map((a,i)=>bub(QS[i][0])+bub(a,1)).join('')}${q?bub(q[0]):CH.busy?bub('רגע, מתאים לכם…'):bub(CH.done)}</div>
-   ${q?`<div class="styc">${q[1].map(o=>`<button class="chipb" onclick="answer(this.textContent)">${o}</button>`).join('')}</div><form class="cin" onsubmit="event.preventDefault();answer($('cti').value)"><input id="cti" type="text" maxlength="120" enterkeyhint="send" aria-label="תשובה במילים שלכם" placeholder="או כתבו במילים שלכם"><button class="chipb" aria-label="שליחה">שליחה</button></form>`:CH.busy?'':'<button class="btn" onclick="closeSheet();keep()">מעולה, להמשיך</button>'}`;
+const CH={a:[],busy:false,typing:false};
+const chatDelay=()=>matchMedia('(prefers-reduced-motion:reduce)').matches?80:750;
+function openChat(){CH.a=[];CH.busy=false;CH.typing=true;$('sheetBody').classList.add('full');drawChat();$('sheet').classList.add('open');setTimeout(()=>{CH.typing=false;if(chatOpen())drawChat()},chatDelay())}
+const chatOpen=()=>$('sheet').classList.contains('open')&&$('sheetBody').classList.contains('full');
+function drawChat(){ // a full-screen chat: the studio "types", then asks; the customer taps or writes an answer
+  const n=CH.a.length,q=QS[n],bub=(t,me)=>`<p class="cb${me?' me':''}">${esc(t)}</p>`,dots='<p class="cb dots" aria-label="מקליד"><i></i><i></i><i></i></p>';
+  $('sheetBody').innerHTML=`<div class="chead"><span class="cav" aria-hidden="true">ק</span><div><b>קיסר סטודיו</b><small>${CH.typing||CH.busy?'מקליד…':'מחובר'}</small></div><button class="cx" aria-label="סגירת השיחה" onclick="closeSheet()">✕</button></div>
+   <div class="chat" id="chat" aria-live="polite">${bub('היי! כמה שאלות קצרות ואני מתאים לכם ריהוט לאירוע.')}${CH.a.map((a,i)=>bub(QS[i][0])+bub(a,1)).join('')}${CH.busy?bub('מעולה, יש לי הכול. מכין לכם את האירוע…')+dots:CH.typing?dots:q?bub(q[0]):''}</div>
+   ${q&&!CH.typing&&!CH.busy?`<div class="styc">${q[1].map(o=>`<button class="chipb" onclick="answer(this.textContent)">${o}</button>`).join('')}</div><form class="cin" onsubmit="event.preventDefault();answer($('cti').value)"><input id="cti" type="text" maxlength="120" enterkeyhint="send" aria-label="תשובה במילים שלכם" placeholder="או כתבו במילים שלכם"><button class="chipb" aria-label="שליחה">שליחה</button></form>`:''}`;
   const c=$('chat');c.scrollTop=c.scrollHeight;
 }
 function ruleAdvice(){ // the fallback: the same style rules as before, nudged by the seating and wish answers
@@ -940,15 +950,15 @@ function ruleAdvice(){ // the fallback: the same style rules as before, nudged b
   return{chair:v.chair,table:v.table,extras:Object.keys(x).filter(e=>x[e]),cloth:v.cloth,cloth_color:'white',reason:`בחרנו לכם ${P[v.chair].n} עם ${P[v.table].n}, בסגנון ${v.n}.`,style:v.n};
 }
 async function answer(v){
-  v=(v||'').trim();if(!v||CH.busy||CH.a.length>=QS.length)return;CH.a.push(v.slice(0,120));
-  if(CH.a.length<QS.length){drawChat();return}
+  v=(v||'').trim();if(!v||CH.busy||CH.typing||CH.a.length>=QS.length)return;CH.a.push(v.slice(0,120));
+  if(CH.a.length<QS.length){CH.typing=true;drawChat();setTimeout(()=>{CH.typing=false;if(chatOpen())drawChat()},chatDelay());return}
   CH.busy=true;drawChat();let d=null;
   try{const r=await fetch(ADVISE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guests:S.guests,session:typeof SID==='string'?SID:'',answers:CH.a.map((a,i)=>({q:QS[i][0],a}))}),signal:AbortSignal.timeout(20000)});if(r.ok)d=await r.json()}catch(e){}
   if(!d||!CHAIRS.includes(d.chair)||!TABLES.includes(d.table))d=ruleAdvice();
   const x={};for(const e of EXTRAS)x[e]=(d.extras||[]).includes(e);
   S.pick={chair:d.chair,table:d.table,x};S.add.cloth=!!d.cloth||P[d.table].q==='round';S.col.cloth=COLORS[d.cloth_color]?d.cloth_color:'white';
   S.style=d.style||CH.a[2];S.advised=true;S.advice=d.reason||`בחרנו לכם ${P[d.chair].n} עם ${P[d.table].n}.`;
-  CH.busy=false;CH.done=S.advice+' אפשר לשנות כל פריט במסך הבא.';if($('sheet').classList.contains('open'))drawChat();
+  CH.busy=false;const was=chatOpen();closeSheet();if(was&&S.scr==='guests')analyze();else keep(); // straight on to the event picture
 }
 function openGuests(){
   $('sheetBody').innerHTML=`<div class="grab"></div><h4>כמה אורחים?</h4>
@@ -958,7 +968,7 @@ function openGuests(){
   $('sheet').classList.add('open');
 }
 function bumpGuests(d){if(!d)return;setGuests(d);if($('g2')){$('g2').value=S.guests;$('g2n').textContent=S.guests}}
-function closeSheet(){$('sheet').classList.remove('open');$('sheetBody').style.transform='';$('sheetBody').style.transition=''}
+function closeSheet(){$('sheet').classList.remove('open');$('sheetBody').classList.remove('full');$('sheetBody').style.transform='';$('sheetBody').style.transition=''}
 let pull=null;
 document.addEventListener('pointerdown',e=>{const gb=e.target.closest&&e.target.closest('.grab');if(!gb)return;pull={y:e.clientY,d:0};try{gb.setPointerCapture(e.pointerId)}catch(_){}$('sheetBody').style.transition='none';e.preventDefault()});
 document.addEventListener('pointermove',e=>{if(!pull)return;pull.d=Math.max(0,e.clientY-pull.y);$('sheetBody').style.transform=`translateY(${pull.d}px)`});
