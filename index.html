@@ -536,6 +536,7 @@ const API='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/api',LIVE=/(^|\
 const SID=Math.random().toString(36).slice(2,12);let TICKET='';
 const call=(action,body)=>fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,session:SID,ticket:TICKET||undefined,...body})}).then(async r=>({ok:r.ok,status:r.status,d:await r.json().catch(()=>({}))}));
 const track=(name,props)=>{if(LIVE)call('event',{name,props}).catch(()=>{})};
+var SAVED=null;try{SAVED=sessionStorage.getItem('ks_s')}catch(e){} // read before the first screen is drawn and overwrites it
 var KEEP=['guests','area','addr','date','pick','add','col','style','advised','advice','made'];
 function stash(){ // the event survives a refresh of this tab; the picture itself is made again on request
   try{if(!LIVE||!KEEP)return;const o={scr:['result','checkout'].includes(S.scr)?'result':S.scr==='guests'?'guests':'',sample:!S.photo};for(const k of KEEP)o[k]=S[k];sessionStorage.setItem('ks_s',JSON.stringify(o))}catch(e){}
@@ -543,15 +544,19 @@ function stash(){ // the event survives a refresh of this tab; the picture itsel
 function stashPhoto(){if(!LIVE)return;const u=S.photo;try{sessionStorage.removeItem('ks_ph')}catch(e){}if(!u)return;jpegOf(u,1400).then(d=>{if(S.photo===u)try{sessionStorage.setItem('ks_ph',d)}catch(e){}}).catch(()=>{})}
 if(LIVE){document.documentElement.classList.add('hosted');setTimeout(()=>{ // after the app state exists
   try{const m=JSON.parse(localStorage.getItem('ks_me')||'null');if(m&&m.t&&m.u){TICKET=m.t;S.user=m.u;S.phone=m.p||''}}catch(e){}
-  try{const o=JSON.parse(sessionStorage.getItem('ks_s')||'null'),ph=sessionStorage.getItem('ks_ph');
+  try{const o=JSON.parse(SAVED||'null'),ph=sessionStorage.getItem('ks_ph');
     if(o&&o.scr&&S.user&&(o.sample||ph)&&o.pick&&CHAIRS.includes(o.pick.chair)&&TABLES.includes(o.pick.table)){
       for(const k of KEEP)if(k in o)S[k]=o[k];S.guests=Math.min(MAXG,Math.max(MING,Math.round(+S.guests)||30));S.photo=o.sample?null:'data:image/jpeg;base64,'+ph;
       go(o.scr==='result'&&S.made?'result':'guests')}}catch(e){}
 },0)}
 // Names, prices and what is on offer come from the catalog Caesar's staff edit; the pictures stay with the app.
-if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=id,name,description,price_ils,active',{headers:{apikey:'sb_publishable_194S1a54eAtumboQ1UBBrA_k11UDLzD'}}).then(r=>r.ok?r.json():[]).then(rows=>{
+if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=id,kind,name,description,price_ils,active,image_url,width_m,depth_m,height_m&order=sort',{headers:{apikey:'sb_publishable_194S1a54eAtumboQ1UBBrA_k11UDLzD'}}).then(r=>r.ok?r.json():[]).then(rows=>{
   if(!Array.isArray(rows)||!rows.length)return;const on=new Set(rows.map(r=>r.id));
-  for(const r of rows)if(P[r.id]){P[r.id].n=r.name;if(r.description)P[r.id].d=r.description;if(r.id!=='crew')P[r.id].p=r.price_ils}
+  for(const r of rows)if(!P[r.id]&&r.image_url&&{chair:CHAIRS,table:TABLES,extra:EXTRAS}[r.kind]){ // a product added in the back office: a name, a photo and measurements are enough
+    const dims=[r.width_m,r.depth_m,r.height_m].filter(Boolean).join(' × ');
+    P[r.id]={n:r.name,d:r.description||(dims?dims+' מ׳':''),s:r.name.split(' ').slice(0,2).join(' '),p:0,img:r.image_url};
+    ({chair:CHAIRS,table:TABLES,extra:EXTRAS})[r.kind].push(r.id);if(r.kind==='extra'){const i=ADDS.indexOf('cloth');ADDS.splice(i<0?ADDS.length:i,0,r.id)}}
+  for(const r of rows)if(P[r.id]&&!P[r.id].img){P[r.id].n=r.name;if(r.description)P[r.id].d=r.description;if(r.id!=='crew')P[r.id].p=r.price_ils}
   for(const L of[CHAIRS,TABLES,EXTRAS,ADDS])for(let i=L.length-1;i>=0;i--)if(!on.has(L[i])&&(L.length>1||L===EXTRAS||L===ADDS))L.splice(i,1); // a product switched off disappears; one chair and one table always remain
   if(!CHAIRS.includes(S.pick.chair))S.pick.chair=CHAIRS[0];if(!TABLES.includes(S.pick.table))S.pick.table=TABLES[0];
   for(const k of['cloth','dish','crew'])if(!on.has(k))S.add[k]=false;
@@ -804,7 +809,7 @@ function pasteUp(){ // draw the picture on screen (photo + furniture, in the sam
     if(sp.classList.contains('fl')){x.save();x.translate(X+W,Y);x.scale(-1,1);x.drawImage(im,0,0,W,H);x.restore()}else x.drawImage(im,X,Y,W,H)}
   return c.toDataURL('image/jpeg',.9).split(',')[1];
 }
-const jpegOf=async(u,max,bg)=>{const im=new Image();im.src=u;await im.decode();const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);const x=c.getContext('2d');if(bg){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)}x.drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.9).split(',')[1]};
+const jpegOf=async(u,max,bg)=>{const im=new Image();if(/^https?:/.test(u))im.crossOrigin='anonymous';im.src=u;await im.decode();const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);const x=c.getContext('2d');if(bg){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)}x.drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.9).split(',')[1]};
 // The event picture: the engine gets the empty venue photo, a product photo of every chosen piece and the list
 // of pieces with quantities, and photographs the place set up for the event. Our own paste-up goes along as a
 // layout sketch only when it rests on a real reading of the photo.
@@ -815,7 +820,7 @@ async function realistic(again){ // again: the customer asked for another take o
     const im0=new Image();im0.src=S.photo||'before.jpg';await im0.decode();const ar0=im0.naturalWidth/im0.naturalHeight,aspect=[['1:1',1],['4:3',4/3],['3:4',.75],['3:2',1.5],['2:3',2/3],['16:9',16/9],['9:16',9/16],['5:4',1.25],['4:5',.8]].sort((a,b)=>Math.abs(Math.log(a[1]/ar0))-Math.abs(Math.log(b[1]/ar0)))[0][0]; // the picture comes back in the photo's own shape
     const place=await jpegOf(S.photo||'before.jpg',1600),cl=S.add.cloth&&P[p.table].q!=='round';
     const want=[[p.table,P[p.table].q+(S.add.cloth?'-c'+tint('cloth'):'')],[p.chair,P[p.chair].q],...EXTRAS.filter(k=>c[k]).map(k=>[k,P[k].q+(k==='sofa'?tint('sofa'):'')])].slice(0,12); // every chosen piece goes with its own photo and quantity
-    const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),qty:c[id]||1,mime:'image/jpeg',data:await jpegOf(src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
+    const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),qty:c[id]||1,mime:'image/jpeg',data:await jpegOf(P[id].img||src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
     const items=[`${c[p.table]} × ${P[p.table].n}${S.add.cloth?' ('+(cl?'עם מפה ':'')+'בצבע '+COLORS[S.col.cloth][0]+')':''}`,`${c[p.chair]} × ${P[p.chair].n}`,...EXTRAS.filter(k=>c[k]).map(k=>'1 × '+nameOf(k)),S.add.dish?`עריכת שולחן מלאה ל-${S.guests} סועדים`:''].filter(Boolean).join('; ');
     let sketch;if(S.photo&&S.plan){try{sketch=pasteUp()}catch(e){}}
     const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
@@ -840,7 +845,7 @@ function shot(mode){ // 'empty' | 'full' | 'toggle'
     return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${btn}</div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד. ההדמיה לא תמיד מדייקת בפריטים; מה שקובע הוא הרשימה שבחרתם.</p>`:`<div class="shot">${baseImg()}${btn}</div>`;
   }
   if(mode==='toggle'&&vizShown())return `<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
-  const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${sprites()}</div>`;
+  const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${(()=>{try{return sprites()}catch(e){return''}})()}</div>`;
   const tog=mode==='toggle'?`<button class="ba" aria-pressed="${S.before}" onclick="S.before=!S.before;S.move=false;keep()">${S.before?'עם הציוד':'בלי הציוד'}</button>${S.before?'':`<button class="ba mvb" aria-pressed="${S.move}" onclick="toggleMove()">${S.move?'סיום':'להזיז'}</button>${VZ.on&&!S.move?`<button class="ba vzb" ${VZ.busy?'disabled':''} onclick="realistic()">${VZ.busy?'מכינים הדמיה, כחצי דקה…':'הדמיית האירוע'}</button>`:''}`}`:'';
   return `<div class="shot${S.move&&mode==='toggle'?' moving':''}">${baseImg()}${layer}${tog}</div>`;
 }
@@ -926,7 +931,7 @@ const ITEM_PRICES=false; // prices per product are hidden; the order still shows
 const cheap=g=>g.reduce((a,b)=>P[a].p<=P[b].p?a:b);
 const qtyOf=id=>CHAIRS.includes(id)||id==='dish'?S.guests:TABLES.includes(id)||id==='cloth'?nTables():1;
 const isOn=id=>CHAIRS.includes(id)?S.pick.chair===id:TABLES.includes(id)?S.pick.table===id:EXTRAS.includes(id)?!!pictured()[id]:!!S.add[id];
-const thumb=id=>P[id].q?`<img src="${src(P[id].q)}" alt="">`:`<span class="gl">${GLYPH[id]}</span>`;
+const thumb=id=>P[id].img?`<img src="${esc(P[id].img)}" alt="" style="border-radius:10px">`:P[id].q?`<img src="${src(P[id].q)}" alt="">`:`<span class="gl">${GLYPH[id]}</span>`;
 function choose(id){ // one tap on the plus: chairs and tables are a single choice, everything else is on or off
   closeSheet();
   if(CHAIRS.includes(id)){if(S.pick.chair!==id)setPick('chair',id)}
