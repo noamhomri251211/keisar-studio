@@ -22,6 +22,26 @@ input,select{font:inherit;font-size:16px;border:1px solid var(--line);border-rad
 td input[type=number]{width:96px}td input[type=text]{width:100%;min-width:180px}
 .msg{min-height:22px;color:var(--mute);margin:8px 0}.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
 small{color:var(--mute)}
+
+/* polish pass */
+.tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.tabs button{white-space:nowrap;flex:none;padding:10px 16px}
+#gate{max-width:420px}
+#msg{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:20;width:max-content;max-width:calc(100vw - 32px);margin:0;padding:12px 18px;border-radius:14px;background:var(--ink);color:#fff;font-weight:600;text-align:center;box-shadow:0 10px 30px -10px rgba(0,0,0,.45)}#msg:empty{display:none}#msg.bad{background:var(--bad);color:#fff}#msg.ok{background:var(--ok);color:#fff}
+.ord{padding:0;overflow:hidden;border-inline-start:4px solid transparent}.ord.new{border-inline-start-color:var(--accent)}
+.ord header{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px 10px}.ord header b{font-size:17px;margin-inline-end:8px}.ord header select{min-height:40px;padding:6px 10px;font-size:15px}
+.og{display:flex;gap:14px;padding:0 16px 12px;align-items:flex-start}.oi{flex:none;width:132px}.oi img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:var(--stage)}.ob{flex:1;min-width:0}
+.ord p{margin:0 0 10px}.ord .nt{background:#f6efe4;border-radius:12px;padding:10px 12px}.ord .nt small{display:block;font-weight:600;color:#8a6a45}
+.ord ul{list-style:none;margin:0;padding:0}.ord li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}.ord li b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.ord footer{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 16px;background:#faf8f4;border-top:1px solid var(--line);font-size:14px;color:var(--mute)}.ct{display:flex;gap:6px}.ct a{display:inline-grid;place-items:center;min-height:40px;padding:0 14px;border-radius:99px;background:var(--ink);color:#fff;font-weight:600;text-decoration:none}.ct a+a{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.tg{display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap}.tg input{min-height:0;width:22px;height:22px;accent-color:var(--accent)}
+.fl{display:inline-block;margin-top:4px;font-size:12.5px;color:var(--mute);text-decoration:underline;cursor:pointer}
+.fbtn{display:inline-flex;align-items:center;min-height:44px;max-width:100%;padding:0 16px;border-radius:12px;border:1.5px dashed var(--accent);color:#8a6a45;font-weight:600;cursor:pointer}.fbtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(min-width:721px){.cat .tg span{display:none}}
+@media(max-width:720px){
+ .og{flex-direction:column}.oi{width:100%}.oi img{aspect-ratio:16/10}
+ .cat{min-width:0}.cat thead{display:none}.cat,.cat tbody{display:block}.cat tr{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px 12px;padding:14px 0;border-bottom:1px solid var(--line)}.cat td{display:block;border:0;padding:0;grid-column:2}.cat td:first-child{grid-column:1;grid-row:1/span 5}.cat td input[type=text]{min-width:0}.cat td input[type=number]{width:31%!important}
+ .bar{grid-template-columns:104px 1fr 52px}
+}
 </style>
 </head>
 <body>
@@ -38,7 +58,7 @@ small{color:var(--mute)}
 <div id="app" hidden>
   <div class="tabs">
     <button aria-pressed="true" onclick="show('stats',this)">מבט על</button>
-    <button class="q" aria-pressed="false" onclick="show('orders',this)">מפרטים מלקוחות</button>
+    <button class="q" aria-pressed="false" onclick="show('orders',this)">מפרטים</button>
     <button class="q" aria-pressed="false" onclick="show('catalog',this)">קטלוג</button>
     <button class="q" aria-pressed="false" onclick="show('costs',this)">עלויות</button>
   </div>
@@ -54,7 +74,7 @@ small{color:var(--mute)}
 const API='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/admin';let CODE='';
 const $=id=>document.getElementById(id),esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nis=n=>'₪'+Math.round(n||0).toLocaleString('he-IL');
-const say=(t,k)=>{const m=$('msg');m.textContent=t||'';m.className='msg'+(k?' '+k:'')};
+let sayT=0;const say=(t,k)=>{const m=$('msg');m.textContent=t||'';m.className='msg'+(k?' '+k:'');clearTimeout(sayT);if(t&&k)sayT=setTimeout(()=>{m.textContent=''},k==='ok'?3500:7000)};
 async function call(action,body){
   const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-admin-code':CODE},body:JSON.stringify({action,...body})});
   const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(d.error||'server'),{status:r.status});return d;
@@ -74,9 +94,16 @@ function drawStats(s){const f=s.funnel||{},top=Math.max(1,...SCREENS.map(([k])=>
   <h2>איפה נושרים בדרך</h2><div class="card">${SCREENS.map(([k,n])=>`<div class="bar"><span>${n}</span><i style="width:${100*(f[k]||0)/top}%"></i><em>${f[k]||0}</em></div>`).join('')}</div>
   <h2>המוצרים שנבחרו הכי הרבה</h2><div class="card">${(s.top||[]).length?s.top.map(t=>`<div class="bar"><span>${esc(NAMES[t.id]||t.id)}</span><i style="width:${100*t.n/s.top[0].n}%"></i><em>${t.n}</em></div>`).join(''):'<small>עוד לא נשלחו מפרטים בתקופה הזאת.</small>'}</div>
   <h2>מפרטים לפי יום</h2><div class="card">${(s.by_day||[]).length?s.by_day.map(d=>`<div class="bar"><span>${esc(d.d)}</span><i style="width:${100*d.n/Math.max(...s.by_day.map(x=>x.n))}%"></i><em>${d.n}</em></div>`).join(''):'<small>עוד לא נשלחו מפרטים בתקופה הזאת.</small>'}</div>`}
-const ST={new:'חדש, מחכה להצעה',confirmed:'נשלחה הצעת מחיר',paid:'נסגר',cancelled:'בוטל'},AREA={sharon:'השרון וקיסריה',center:'גוש דן והמרכז',jlm:'ירושלים והסביבה',far:'צפון / דרום'};
+const ST={new:'חדש, מחכה להצעה',confirmed:'נשלחה הצעת מחיר',paid:'נסגר',cancelled:'בוטל'},AREA={sharon:'השרון וקיסריה',center:'גוש דן והמרכז',jlm:'ירושלים והסביבה',far:'צפון / דרום'},COL={sand:'חול',sage:'ירוק מרווה',blue:'כחול',pink:'ורוד עתיק',black:'שחור'};
 async function loadOrders(){const{orders}=await call('orders');
-  $('orders').innerHTML=orders.length?`<div class="card tw"><table><thead><tr><th>מס׳</th><th>התקבלה</th><th>לקוח</th><th>אירוע</th><th>מה נבחר</th><th>מצב</th></tr></thead><tbody>${orders.map(o=>`<tr><td>${esc(o.no)}</td><td>${new Date(o.created_at).toLocaleString('he-IL',{dateStyle:'short',timeStyle:'short'})}</td><td>${esc(o.email)}<br><bdi>${esc(o.phone)}</bdi></td><td>${esc(o.event_date)} · ${o.guests} אורחים<br><small>${esc(o.address)} · ${esc(AREA[o.area]||o.area)}</small></td><td><small>${o.lines.map(l=>`${esc(l.name)} × ${l.q}${l.color?' ('+esc(l.color)+')':''}`).join('<br>')}</small>${o.note?`<br><small><b>בקשת הלקוח:</b> ${esc(o.note)}</small>`:''}${o.picture?`<br><a href="${esc(o.picture)}" target="_blank" rel="noopener">ההדמיה שהלקוח ראה</a>`:''}</td><td><select aria-label="מצב מפרט ${esc(o.no)}" onchange="setStatus('${o.id}',this)">${Object.entries(ST).map(([k,n])=>`<option value="${k}" ${o.status===k?'selected':''}>${n}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>`:'<div class="card"><small>עוד לא נשלחו מפרטים.</small></div>'}
+  const when=t=>new Date(t).toLocaleString('he-IL',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}),day=d=>{const[y,m,x]=String(d||'').split('-');return x?`${+x}.${+m}.${y}`:''},wa=p=>{const n=String(p||'').replace(/\D/g,'');return n?'https://wa.me/'+(n.startsWith('0')?'972'+n.slice(1):n):''};
+  $('orders').innerHTML=orders.length?`<p><small>${orders.filter(o=>o.status==='new').length} מפרטים מחכים להצעת מחיר.</small></p>`+orders.map(o=>`<article class="card ord${o.status==='new'?' new':''}">
+   <header><div><b>${esc(o.no)}</b><small>התקבל ${when(o.created_at)}</small></div><select aria-label="מצב מפרט ${esc(o.no)}" onchange="setStatus('${o.id}',this);this.closest('.ord').classList.toggle('new',this.value==='new')">${Object.entries(ST).map(([k,n])=>`<option value="${k}" ${o.status===k?'selected':''}>${n}</option>`).join('')}</select></header>
+   <div class="og">${o.picture?`<a class="oi" href="${esc(o.picture)}" target="_blank" rel="noopener" aria-label="ההדמיה שהלקוח ראה, בגודל מלא"><img src="${esc(o.picture)}" alt="" loading="lazy"></a>`:''}
+   <div class="ob"><p class="ev"><b>${esc(day(o.event_date))}</b> · ${o.guests} אורחים${o.style?' · '+esc(o.style):''}<br><small>${esc(o.address)} · ${esc(AREA[o.area]||o.area)}</small></p>
+   ${o.note?`<p class="nt"><small>בקשת הלקוח</small>${esc(o.note)}</p>`:''}
+   <ul>${o.lines.map(l=>`<li><span>${esc(l.name)}${l.color&&COL[l.color]?' · '+COL[l.color]:''}</span><b>× ${esc(l.q)}</b></li>`).join('')}</ul></div></div>
+   <footer><span><bdi>${esc(o.email)}</bdi> · <bdi>${esc(o.phone)}</bdi></span><span class="ct">${o.phone?`<a href="tel:${esc(o.phone)}">להתקשר</a>${wa(o.phone)?`<a href="${wa(o.phone)}" target="_blank" rel="noopener">וואטסאפ</a>`:''}`:''}${o.email?`<a href="mailto:${esc(o.email)}?subject=${encodeURIComponent('הצעת מחיר · בקשה '+o.no)}">מייל</a>`:''}</span></footer></article>`).join(''):'<div class="card"><small>עוד לא נשלחו מפרטים.</small></div>'}
 async function setStatus(id,el){el.disabled=true;try{await call('order_status',{id,status:el.value});say('המצב עודכן.','ok')}catch(e){say(why(e),'bad')}el.disabled=false}
 const KIND={chair:'כיסא',table:'שולחן',extra:'תוספת (לאונג׳, בר וכו׳)',addon:'שירות'};
 const pic=p=>p.image_url||(p.sprite_key?`f-${p.sprite_key}${p.kind==='chair'&&!/-q$/.test(p.sprite_key)?'-q':''}-sun.webp`:'');
@@ -93,18 +120,18 @@ async function loadCatalog(){const{products}=await call('products');window.NAMES
     <label>רוחב (מ׳)<br><input type="number" name="width_m" min="0.05" max="20" step="0.01"></label>
     <label>עומק (מ׳)<br><input type="number" name="depth_m" min="0.05" max="20" step="0.01"></label>
     <label>גובה (מ׳)<br><input type="number" name="height_m" min="0.05" max="20" step="0.01"></label>
-    <label>תמונה<br><input type="file" name="image" accept="image/*" required></label>
+    <div>תמונה<br><label class="fbtn"><span>בחירת תמונה</span><input type="file" name="image" accept="image/*" hidden onchange="this.previousElementSibling.textContent=this.files[0]?this.files[0].name:'בחירת תמונה'"></label></div>
     <div style="align-self:end"><button>להוסיף לקטלוג</button></div></form></div>
   <p><small>שינוי בשורה נשמר בלחיצה על "שמירה". מוצר כבוי לא מוצג ללקוחות. מוצרים שנוספו כאן אפשר גם למחוק; את מוצרי הבסיס מכבים.</small></p>
-  <div class="card tw"><table><thead><tr><th>תמונה</th><th>מוצר</th><th>תיאור</th><th>מידות במטרים (ר / ע / ג)</th><th>מוצג</th><th></th></tr></thead><tbody>${products.filter(p=>p.kind!=='addon').map(p=>`<tr data-id="${esc(p.id)}">
-   <td>${pic(p)?`<img src="${esc(pic(p))}" alt="" onerror="this.style.visibility='hidden'" style="width:64px;height:64px;object-fit:contain;border-radius:10px;background:var(--stage)">`:''}<br><label class="q" style="font-size:12px;cursor:pointer;text-decoration:underline">החלפה<input type="file" accept="image/*" data-img hidden></label></td>
+  <div class="card tw"><table class="cat"><thead><tr><th>תמונה</th><th>מוצר</th><th>תיאור</th><th>מידות במטרים (ר / ע / ג)</th><th>מוצג</th><th></th></tr></thead><tbody>${products.filter(p=>p.kind!=='addon').map(p=>`<tr data-id="${esc(p.id)}">
+   <td>${pic(p)?`<img src="${esc(pic(p))}" alt="" onerror="this.style.visibility='hidden'" style="width:64px;height:64px;object-fit:contain;border-radius:10px;background:var(--stage)">`:''}<br><label class="fl">החלפת תמונה<input type="file" accept="image/*" data-img hidden onchange="this.parentNode.firstChild.textContent=this.files[0]?'נבחרה, לחצו שמירה':'החלפת תמונה'"></label></td>
    <td><input type="text" data-f="name" aria-label="שם" value="${esc(p.name)}"><br><small>${KIND[p.kind]||''}</small></td>
    <td><input type="text" data-f="description" aria-label="תיאור" value="${esc(p.description)}"></td>
-   <td style="white-space:nowrap">${['width_m','depth_m','height_m'].map(k=>`<input type="number" data-f="${k}" aria-label="${k}" min="0.05" max="20" step="0.01" value="${p[k]??''}" style="width:74px">`).join(' ')}</td>
-   <td><input type="checkbox" data-f="active" aria-label="מוצג ללקוחות" ${p.active?'checked':''} style="min-height:0;width:22px;height:22px"></td>
+   <td style="white-space:nowrap">${[['width_m','רוחב'],['depth_m','עומק'],['height_m','גובה']].map(([k,n])=>`<input type="number" data-f="${k}" aria-label="${n} במטרים" placeholder="${n}" min="0.05" max="20" step="0.01" value="${p[k]??''}" style="width:78px">`).join(' ')}</td>
+   <td><label class="tg"><input type="checkbox" data-f="active" ${p.active?'checked':''}><span>מוצג ללקוחות</span></label></td>
    <td style="white-space:nowrap"><button class="q" onclick="saveRow(this)">שמירה</button>${/^c-/.test(p.id)?` <button class="q" onclick="delRow(this)" style="color:var(--bad)">מחיקה</button>`:''}</td></tr>`).join('')}</tbody></table></div>`}
 const oops=e=>({name:'חסר שם למוצר.',size:'מידה לא תקינה: בין 0.05 ל-20 מטר.',image:'התמונה לא התקבלה. נסו קובץ אחר, עד 2MB.',kind:'חסר סוג מוצר.',builtin:'מוצר בסיס לא נמחק, רק מכבים אותו.'}[e.message]||why(e));
-async function addProduct(ev){ev.preventDefault();const f=ev.target,btn=f.querySelector('button'),file=f.image.files[0];if(!file)return;btn.disabled=true;say('מעלה…');
+async function addProduct(ev){ev.preventDefault();const f=ev.target,btn=f.querySelector('button'),file=f.image.files[0];if(!file){say('חסרה תמונה למוצר. לחצו על בחירת תמונה.','bad');return}btn.disabled=true;say('מעלה…');
   try{const image=await shrink(file);await call('product_create',{fields:{name:f.name.value,kind:f.kind.value,description:f.description.value,width_m:num(f.width_m.value),depth_m:num(f.depth_m.value),height_m:num(f.height_m.value)},image,image_mime:'image/jpeg'});await loadCatalog();say('המוצר נוסף לקטלוג.','ok')}
   catch(e){say(oops(e),'bad')}btn.disabled=false}
 async function saveRow(btn){const tr=btn.closest('tr'),fields={};for(const i of tr.querySelectorAll('[data-f]'))fields[i.dataset.f]=i.type==='checkbox'?i.checked:i.type==='number'?num(i.value):i.value;
