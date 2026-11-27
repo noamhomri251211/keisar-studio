@@ -251,7 +251,7 @@ select{width:100%;border:0;border-radius:16px;padding:14px;background:var(--stag
 .sheet .big img{max-width:78%;height:168px;object-fit:contain}
 .sheet .big.m3{height:min(46vh,340px);display:block;position:relative}.sheet .big model-viewer{width:100%;height:100%;background:transparent}
 .arb{position:absolute;inset-inline:12px;bottom:12px;min-height:48px;border:0;border-radius:14px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:700}
-.b3d{display:block;width:100%;min-height:44px;margin:0 0 12px;border:0;border-radius:14px;background:var(--stage);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.b3d{display:block;width:100%;min-height:48px;margin:0 0 12px;border:0;border-radius:14px;background:var(--accent-soft,var(--stage));color:var(--accent,var(--ink));font:inherit;font-weight:600;cursor:pointer}
 .m3n{font-size:12.5px;color:var(--mute);margin:0 0 12px}
 .sheet .big .gl svg{width:70px;height:70px;fill:none;stroke:var(--mute);stroke-width:1.4;stroke-linecap:round}
 .sheet h4{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
@@ -441,7 +441,7 @@ input,select,textarea{-webkit-user-select:text;user-select:text;font-size:16px!i
 .ba::after{content:"";position:absolute;inset:-6px}                        /* a bigger target than the pill itself */
 .mvb{inset:12px 12px auto auto}
 .vzb{inset:auto auto 12px 12px}
-.shot.vz,.stick .shot.vz,.stick.mini .shot.vz{aspect-ratio:auto;width:fit-content;max-width:100%;margin-inline:auto}.shot.vz img{position:static;display:block;width:auto;max-width:100%;height:auto;max-height:56cqh}.stick:has(.shot.vz){position:static}.vnote{font-size:12.5px;color:var(--mute);margin:8px 4px 0;text-align:center}.vzb[disabled]{opacity:.8}.vzb.go{background:var(--accent);color:var(--on-accent,#1f1f1f);font-weight:700}
+.shot.vz,.stick .shot.vz,.stick.mini .shot.vz{aspect-ratio:auto;width:fit-content;max-width:100%;margin-inline:auto}.shot.vz img{position:static;display:block;width:auto;max-width:100%;height:auto;max-height:56cqh}.stick:has(.shot.vz){position:static}.hosted .pill{display:none}.vnote{font-size:12.5px;color:var(--mute);margin:8px 4px 0;text-align:center}.vzb[disabled]{opacity:.8}.vzb.go{background:var(--accent);color:var(--on-accent,#1f1f1f);font-weight:700}
 .vtag{position:absolute;inset:12px 12px auto auto;z-index:3100;background:rgba(16,16,20,.72);color:#fff;font-size:12px;padding:6px 12px;border-radius:99px}
 .mvb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
 .live{display:none}
@@ -536,7 +536,18 @@ const API='https://kizbawgcjjyhyvwvudgg.supabase.co/functions/v1/api',LIVE=/(^|\
 const SID=Math.random().toString(36).slice(2,12);let TICKET='';
 const call=(action,body)=>fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,session:SID,ticket:TICKET||undefined,...body})}).then(async r=>({ok:r.ok,status:r.status,d:await r.json().catch(()=>({}))}));
 const track=(name,props)=>{if(LIVE)call('event',{name,props}).catch(()=>{})};
-if(LIVE)setTimeout(()=>{try{const m=JSON.parse(localStorage.getItem('ks_me')||'null');if(m&&m.t&&m.u){TICKET=m.t;S.user=m.u;S.phone=m.p||''}}catch(e){}},0); // after the app state exists
+var KEEP=['guests','area','addr','date','pick','add','col','style','advised','advice','made'];
+function stash(){ // the event survives a refresh of this tab; the picture itself is made again on request
+  try{if(!LIVE||!KEEP)return;const o={scr:['result','checkout'].includes(S.scr)?'result':S.scr==='guests'?'guests':'',sample:!S.photo};for(const k of KEEP)o[k]=S[k];sessionStorage.setItem('ks_s',JSON.stringify(o))}catch(e){}
+}
+function stashPhoto(){if(!LIVE)return;const u=S.photo;try{sessionStorage.removeItem('ks_ph')}catch(e){}if(!u)return;jpegOf(u,1400).then(d=>{if(S.photo===u)try{sessionStorage.setItem('ks_ph',d)}catch(e){}}).catch(()=>{})}
+if(LIVE){document.documentElement.classList.add('hosted');setTimeout(()=>{ // after the app state exists
+  try{const m=JSON.parse(localStorage.getItem('ks_me')||'null');if(m&&m.t&&m.u){TICKET=m.t;S.user=m.u;S.phone=m.p||''}}catch(e){}
+  try{const o=JSON.parse(sessionStorage.getItem('ks_s')||'null'),ph=sessionStorage.getItem('ks_ph');
+    if(o&&o.scr&&S.user&&(o.sample||ph)&&o.pick&&CHAIRS.includes(o.pick.chair)&&TABLES.includes(o.pick.table)){
+      for(const k of KEEP)if(k in o)S[k]=o[k];S.guests=Math.min(MAXG,Math.max(MING,Math.round(+S.guests)||30));S.photo=o.sample?null:'data:image/jpeg;base64,'+ph;
+      go(o.scr==='result'&&S.made?'result':'guests')}}catch(e){}
+},0)}
 // Names, prices and what is on offer come from the catalog Caesar's staff edit; the pictures stay with the app.
 if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=id,name,description,price_ils,active',{headers:{apikey:'sb_publishable_194S1a54eAtumboQ1UBBrA_k11UDLzD'}}).then(r=>r.ok?r.json():[]).then(rows=>{
   if(!Array.isArray(rows)||!rows.length)return;const on=new Set(rows.map(r=>r.id));
@@ -545,12 +556,21 @@ if(LIVE)fetch('https://kizbawgcjjyhyvwvudgg.supabase.co/rest/v1/products?select=
   if(!CHAIRS.includes(S.pick.chair))S.pick.chair=CHAIRS[0];if(!TABLES.includes(S.pick.table))S.pick.table=TABLES[0];
   for(const k of['cloth','dish','crew'])if(!on.has(k))S.add[k]=false;
   if(!['join','checkout','scan'].includes(S.scr)&&!$('sheet').classList.contains('open'))keep()}).catch(()=>{});
+async function verifyCode(){
+  const c=($('code').value||'').replace(/\D/g,'');if(c.length!==6){toast('הקוד הוא 6 ספרות');return}if(S.busy)return;
+  S.busy=true;let r=null;try{r=await call('verify',{email:S.verify,code:c})}catch(e){}S.busy=false;
+  if(!r){toast('אין חיבור. נסו שוב');return}
+  if(!r.ok||!r.d.ticket){toast(r.status===429?'יותר מדי ניסיונות. בקשו קוד חדש':'הקוד לא נכון או שפג תוקפו');return}
+  TICKET=r.d.ticket;const u=S.verify;S.verify=null;try{localStorage.setItem('ks_me',JSON.stringify({u,p:S.phone,t:TICKET}))}catch(e){}
+  S.user=u;go('photo');
+}
 async function join(){const v=$('em').value.trim(),t=$('ph').value.trim();S.phone=t;if(!v){toast('הקלידו מייל כדי להמשיך');$('em').focus();return}if(!t){S.user=null;toast('הקלידו טלפון כדי להמשיך');$('ph').focus();return}
   if(LIVE){if(S.busy)return;
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v)){toast('המייל לא נראה תקין');$('em').focus();return}
     if(!/^\+?\d{9,15}$/.test(t.replace(/[^\d+]/g,''))){toast('הטלפון לא נראה תקין');$('ph').focus();return}
     S.busy=true;let r=null;try{r=await call('join',{email:v,phone:t})}catch(e){}S.busy=false;
     if(!r){toast('אין חיבור. נסו שוב');return}
+    if(r.ok&&r.d.verify){S.verify=v;keep();return}
     if(!r.ok||!r.d.ticket){toast(r.d.error==='email'?'המייל לא נראה תקין':r.d.error==='phone'?'הטלפון לא נראה תקין':r.status===429?'יותר מדי ניסיונות היום. נסו מחר':'ההרשמה לא הצליחה. נסו שוב');return}
     TICKET=r.d.ticket;try{localStorage.setItem('ks_me',JSON.stringify({u:v,p:t,t:TICKET}))}catch(e){}} // remembered on this phone, so a returning customer is not asked again
   S.user=v;go('photo')}
@@ -788,18 +808,19 @@ const jpegOf=async(u,max,bg)=>{const im=new Image();im.src=u;await im.decode();c
 // The event picture: the engine gets the empty venue photo, a product photo of every chosen piece and the list
 // of pieces with quantities, and photographs the place set up for the event. Our own paste-up goes along as a
 // layout sketch only when it rests on a real reading of the photo.
-async function realistic(){
-  if(VZ.busy||vizShown())return;
+async function realistic(again){ // again: the customer asked for another take of the same choices
+  if(VZ.busy||(vizShown()&&!again))return;
   const key=vizKey(),pl=plan()||{},c=pictured(),p=S.pick;VZ.busy=true;keep();
   try{
     const im0=new Image();im0.src=S.photo||'before.jpg';await im0.decode();const ar0=im0.naturalWidth/im0.naturalHeight,aspect=[['1:1',1],['4:3',4/3],['3:4',.75],['3:2',1.5],['2:3',2/3],['16:9',16/9],['9:16',9/16],['5:4',1.25],['4:5',.8]].sort((a,b)=>Math.abs(Math.log(a[1]/ar0))-Math.abs(Math.log(b[1]/ar0)))[0][0]; // the picture comes back in the photo's own shape
     const place=await jpegOf(S.photo||'before.jpg',1600),cl=S.add.cloth&&P[p.table].q!=='round';
-    const want=[[p.table,P[p.table].q+(S.add.cloth?'-c'+tint('cloth'):'')],[p.chair,P[p.chair].q],...EXTRAS.filter(k=>c[k]).map(k=>[k,P[k].q+(k==='sofa'?tint('sofa'):'')])].slice(0,8);
-    const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),mime:'image/jpeg',data:await jpegOf(src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
+    const want=[[p.table,P[p.table].q+(S.add.cloth?'-c'+tint('cloth'):'')],[p.chair,P[p.chair].q],...EXTRAS.filter(k=>c[k]).map(k=>[k,P[k].q+(k==='sofa'?tint('sofa'):'')])].slice(0,12); // every chosen piece goes with its own photo and quantity
+    const refs=(await Promise.all(want.map(async([id,k])=>{try{return{name:nameOf(id),qty:c[id]||1,mime:'image/jpeg',data:await jpegOf(src(k),640,1)}}catch(e){return null}}))).filter(Boolean);
     const items=[`${c[p.table]} × ${P[p.table].n}${S.add.cloth?' ('+(cl?'עם מפה ':'')+'בצבע '+COLORS[S.col.cloth][0]+')':''}`,`${c[p.chair]} × ${P[p.chair].n}`,...EXTRAS.filter(k=>c[k]).map(k=>'1 × '+nameOf(k)),S.add.dish?`עריכת שולחן מלאה ל-${S.guests} סועדים`:''].filter(Boolean).join('; ');
     let sketch;if(S.photo&&S.plan){try{sketch=pasteUp()}catch(e){}}
-    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
+    const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,mode:'styled',aspect,place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
     if(r.status===429)toast('הגענו למכסת התמונות להיום. נסו מחר');
+    else if(r.status===401)toast('צריך להירשם כדי ליצור הדמיה. חזרו להתחלה והירשמו');
     else if(r.status===422)toast('המנוע לא מעבד את הצילום הזה. אם יש בו אנשים, פנים או שלטים, נסו צילום אחר של המקום');
     else if(!r.ok||!d.image||d.provider==='mock')toast('ההדמיה לא נוצרה. נסו שוב');
     else{VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key;VZ.id=d.id||''}
@@ -815,8 +836,8 @@ async function saveViz(){ // hand the picture to the phone's share sheet (save t
 function shot(mode){ // 'empty' | 'full' | 'toggle'
   if(mode==='toggle'&&VZ.on){ // with an image engine connected the event picture is the only view: no paste-up
     const cur=vizShown(),has=!!VZ.img;
-    const btn=VZ.busy?'<button class="ba vzb" disabled>מכינים הדמיה, כחצי דקה…</button>':has&&cur?'<button class="ba vzb" onclick="saveViz()">לשמור תמונה</button>':`<button class="ba vzb go" onclick="realistic()">${has?'לעדכן את ההדמיה':'צור הדמיה לאירוע'}</button>`;
-    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${btn}</div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד.</p>`:`<div class="shot">${baseImg()}${btn}</div>`;
+    const btn=VZ.busy?'<button class="ba vzb" disabled>מכינים הדמיה, כחצי דקה…</button>':has&&cur?'<button class="ba vzb" onclick="saveViz()">לשמור תמונה</button><button class="ba" onclick="realistic(1)">הדמיה נוספת</button>':`<button class="ba vzb go" onclick="realistic()">${has?'לעדכן את ההדמיה':'צור הדמיה לאירוע'}</button>`;
+    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${btn}</div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד. ההדמיה לא תמיד מדייקת בפריטים; מה שקובע הוא הרשימה שבחרתם.</p>`:`<div class="shot">${baseImg()}${btn}</div>`;
   }
   if(mode==='toggle'&&vizShown())return `<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
   const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${sprites()}</div>`;
@@ -846,7 +867,9 @@ home:()=>`<div class="hero dark plain"><div class="hin"><div class="brand">קי�
  <ol class="say"><li>מצלמים את המקום.</li><li>מרכיבים את האירוע בציוד של קיסר.</li><li>שולחים לנציג ומקבלים הצעת מחיר.</li></ol>
  <button class="btn cta" onclick="go(S.user?'photo':'join')">בואו נתחיל</button>
  <p class="fine">בלי מדידות ובלי לנחש כמה ציוד צריך.</p></div></div>`,
-join:()=>`<h2>פותחים חשבון</h2><p class="sub">${LIVE?'כדי להתחיל צריך חשבון עם מייל וטלפון.':'כדי להתחיל צריך חשבון עם מייל וטלפון. נשלח קוד אימות למייל.'}</p>
+join:()=>S.verify?`<h2>קוד אימות</h2><p class="sub">שלחנו קוד בן 6 ספרות אל <bdi>${esc(S.verify)}</bdi>. הוא תקף ל־10 דקות.</p>
+ <div class="card f"><label for="code">הקוד מהמייל</label><input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" onkeydown="if(event.key==='Enter')verifyCode()"></div>
+ <div class="stack" style="margin-top:16px"><button class="btn" onclick="verifyCode()">לאמת ולהמשיך</button><button class="lnk" onclick="S.verify=null;keep()">מייל אחר או קוד חדש</button></div>`:`<h2>פותחים חשבון</h2><p class="sub">${LIVE?'כדי להתחיל צריך חשבון עם מייל וטלפון.':'כדי להתחיל צריך חשבון עם מייל וטלפון. נשלח קוד אימות למייל.'}</p>
  <div class="card f"><label for="em">מייל</label><input id="em" type="text" inputmode="email" autocomplete="off" autocapitalize="off" placeholder="name@example.com" value="${esc(S.user||'')}" onkeydown="if(event.key==='Enter')join()"><label for="ph">טלפון</label><input id="ph" type="text" inputmode="tel" autocomplete="off" placeholder="050-0000000" value="${esc(S.phone||'')}" onkeydown="if(event.key==='Enter')join()"></div>
  <div class="stack" style="margin-top:16px"><button class="btn" onclick="join()">להמשיך</button></div>
  ${LIVE?'<p class="demonote">המייל והטלפון נשמרים אצל קיסר אירועים כדי לחזור אליכם עם הצעת מחיר.</p>':'<p class="demonote">דמו: אין כאן הרשמה אמיתית ושום דבר לא נשמר. מקלידים תו כלשהו בכל שדה וממשיכים.</p>'}`,
@@ -891,7 +914,7 @@ checkout:()=>{const t=totals();
  <p class="cap">נציג של קיסר אירועים עובר על המפרט ומחזיר לכם הצעת מחיר. כפוף לאישור זמינות.</p>
  <div class="bar"><div class="swipe" id="swipe"><span class="lab">החליקו כדי לשלוח לנציג</span><button class="knob" id="knob" aria-label="לשלוח לנציג" onclick="if(event.detail===0)placeOrder()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5l-7 7 7 7"/></svg></button></div></div>`},
 done:()=>{const o=S.order;return `<div class="done"><div class="tick"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 25l8 8 16-18"/></svg></div>
- <h2>המפרט נשלח</h2><p class="sub">בקשה מס׳ ${o.no}</p>${VZ.img?`<div class="shot vz" style="margin-bottom:16px"><img src="${VZ.img}" alt="הדמיה של האירוע"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="saveViz()">לשמור תמונה</button></div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד.</p>`:''}
+ <h2>המפרט נשלח</h2><p class="sub">בקשה מס׳ ${o.no}</p>${VZ.img?`<div class="shot vz" style="margin-bottom:16px"><img src="${VZ.img}" alt="הדמיה של האירוע"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="saveViz()">לשמור תמונה</button></div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד. ההדמיה לא תמיד מדייקת בפריטים; מה שקובע הוא הרשימה שבחרתם.</p>`:''}
  <div class="recap"><div><span>מתי</span><b>${esc(o.dateText)}</b></div><div><span>איפה</span><b>${esc(o.addr)}</b></div><div><span>מה</span><b>${esc(o.what)}</b></div></div>
  <div class="trk" aria-hidden="true"><i class="d"></i><i class="a"></i><i></i><i></i></div>
  <ol class="next"><li class="done"><b>המפרט נשלח</b>עכשיו</li><li class="on"><b>נציג מכין הצעת מחיר</b>וחוזר אליכם במייל או בטלפון</li><li><b>מאשרים את ההצעה</b>ורק אז ההזמנה נסגרת</li><li><b>${esc(o.dateText)}</b>האירוע שלכם</li></ol>
@@ -925,7 +948,7 @@ async function open3d(id){
 function openItem(id){
   const x=P[id],q=qtyOf(id),sel=isOn(id),single=CHAIRS.includes(id)||TABLES.includes(id),no=EXTRAS.includes(id)&&!fits(id),tot=nis(priceOf(id)*q);
   $('sheetBody').innerHTML=`<div class="grab"></div><div class="big">${thumb(id)}</div><h4>${x.n}</h4><p>${x.d}</p>
-   ${M3[id]?`<button id="b3d" class="b3d" onclick="open3d('${id}')">לראות בתלת־ממד</button>`:''}
+   ${M3[id]?`<button id="b3d" class="b3d" onclick="open3d('${id}')">לראות בתלת־ממד ואצלכם במקום</button>`:''}
    <div class="calc"><span>${q>1?q+' יחידות'+(ITEM_PRICES?' × '+nis(priceOf(id)):''):'יחידה אחת'}</span><b>${ITEM_PRICES?tot:''}</b></div>
    ${no?'<button class="btn" disabled>אין מקום בתמונה הזו</button>':single?(sel?'<button class="btn" disabled>נבחר לאירוע</button>':`<button class="btn" onclick="choose('${id}')">לבחור${ITEM_PRICES?' · '+tot:''}</button>`):(sel?`<button class="btn dark" onclick="choose('${id}')">להסיר מהאירוע</button>`:`<button class="btn" onclick="choose('${id}')">להוסיף${ITEM_PRICES?' · '+tot:''}</button>`)}`;
   $('sheet').classList.add('open');
@@ -954,7 +977,7 @@ async function answer(v){
   v=(v||'').trim();if(!v||CH.busy||CH.typing||CH.a.length>=QS.length)return;CH.a.push(v.slice(0,120));
   if(CH.a.length<QS.length){CH.typing=true;drawChat();setTimeout(()=>{CH.typing=false;if(chatOpen())drawChat()},chatDelay());return}
   CH.busy=true;drawChat();let d=null;
-  try{const r=await fetch(ADVISE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guests:S.guests,session:typeof SID==='string'?SID:'',answers:CH.a.map((a,i)=>({q:QS[i][0],a}))}),signal:AbortSignal.timeout(20000)});if(r.ok)d=await r.json()}catch(e){}
+  try{const r=await fetch(ADVISE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:TICKET||undefined,guests:S.guests,session:typeof SID==='string'?SID:'',answers:CH.a.map((a,i)=>({q:QS[i][0],a}))}),signal:AbortSignal.timeout(20000)});if(r.ok)d=await r.json()}catch(e){}
   if(!d||!CHAIRS.includes(d.chair)||!TABLES.includes(d.table))d=ruleAdvice();
   const x={};for(const e of EXTRAS)x[e]=(d.extras||[]).includes(e);
   S.pick={chair:d.chair,table:d.table,x};S.add.cloth=!!d.cloth||P[d.table].q==='round';S.col.cloth=COLORS[d.cloth_color]?d.cloth_color:'white';
@@ -985,7 +1008,7 @@ function keep(){const el=$('scr'),y=el.scrollTop;el.classList.remove('enter');re
 function setPick(k,v){const b=totals().total;if(k==='x')S.pick.x[v]=!S.pick.x[v];else S.pick[k]=v;S.delta=totals().total-b;S.before=false;keep()}
 function setAdd(k){const b=totals().total;S.add[k]=!S.add[k];S.delta=totals().total-b;S.before=false;keep()}
 function setGuests(d){const b=totals().total;S.guests=clampG(S.guests+d);for(const k in S.mv)if(k[0]==='t')delete S.mv[k];S.delta=totals().total-b;S.before=false;keep()}
-function useSample(){if(S.photo)URL.revokeObjectURL(S.photo);S.photo=null;S.blob=null;S.plan=null;S.fit=100;go('guests')}
+function useSample(){if(S.photo)URL.revokeObjectURL(S.photo);S.photo=null;stashPhoto();S.blob=null;S.plan=null;S.fit=100;go('guests')}
 async function decodePhoto(f){ // an <img> honours the way the phone was held, on every browser; createImageBitmap is the fallback
   const u=URL.createObjectURL(f);
   try{const im=new Image();im.src=u;await new Promise((ok,no)=>{im.onload=ok;im.onerror=no});if(im.naturalWidth)return{src:im,width:im.naturalWidth,height:im.naturalHeight,done:()=>URL.revokeObjectURL(u)}}catch(e){}
@@ -1001,7 +1024,7 @@ async function pickFile(inp){
     blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.88));
   }catch(e){}
   if(!blob){toast('לא הצלחנו לפתוח את הקובץ. נסו תמונת JPG או PNG.');return}
-  if(S.photo)URL.revokeObjectURL(S.photo);S.photo=URL.createObjectURL(blob);S.blob=blob;S.plan=null;S.fit=fit;go('guests');
+  if(S.photo)URL.revokeObjectURL(S.photo);S.photo=URL.createObjectURL(blob);S.blob=blob;S.plan=null;S.fit=fit;stashPhoto();go('guests');
 }
 async function analyze(){
   if(S.busy)return;S.busy=true;VZ.img='';VZ.id='';go('scan');
@@ -1017,9 +1040,9 @@ async function analyze(){
   if(S.guests<asked)toast(`במקום הזה נכנסים עד ${S.guests} אורחים`);
   else if(!S.hinted&&!VZ.on){S.hinted=true;toast('רוצים סידור אחר? לחצו על ״להזיז״ בתמונה')}
 }
-function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',advised:false,advice:'',before:false});go('home')}
+function resetAll(){if(S.photo)URL.revokeObjectURL(S.photo);try{sessionStorage.removeItem('ks_ph')}catch(e){}VZ.img='';VZ.id='';Object.assign(S,{made:false,busy:false,guests:30,area:'sharon',photo:null,blob:null,plan:null,fit:100,addr:'',date:'',order:null,pick:fresh(),add:{cloth:false,dish:false,crew:false},col:{cloth:'white',sofa:'white'},mv:{},move:false,pay:'apple',style:'',advised:false,advice:'',before:false});go('home')}
 function go(s){if(S.busy&&s!=='scan')return;closeSheet();if(s!==S.scr)track('screen_'+s);S.scr=s;S.delta=0;S.move=false;render();const el=$('scr');el.scrollTop=0;el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter')}
-function render(){$('scr').innerHTML=V[S.scr]();document.querySelector('.phone').classList.toggle('home',S.scr==='home')}
+function render(){stash();$('scr').innerHTML=V[S.scr]();document.querySelector('.phone').classList.toggle('home',S.scr==='home')}
 const GLYPH={dish:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>',crew:'<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M2.5 19c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M14 14c3.5-1 7 1 7 5"/></svg>'};
 const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 async function placeOrder(){
