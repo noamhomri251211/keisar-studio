@@ -431,7 +431,7 @@ input,select,textarea{-webkit-user-select:text;user-select:text;font-size:16px!i
 .ba::after{content:"";position:absolute;inset:-6px}                        /* a bigger target than the pill itself */
 .mvb{inset:12px 12px auto auto}
 .vzb{inset:auto auto 12px 12px}
-.shot.vz,.stick .shot.vz,.stick.mini .shot.vz{aspect-ratio:auto;width:100%}.shot.vz img{position:static;display:block;width:100%;height:auto}.vzb[disabled]{opacity:.8}.vzb.go{background:var(--accent);color:var(--on-accent,#1f1f1f);font-weight:700}
+.shot.vz,.stick .shot.vz,.stick.mini .shot.vz{aspect-ratio:auto;width:100%}.shot.vz img{position:static;display:block;width:100%;height:auto}.vnote{font-size:12.5px;color:var(--mute);margin:8px 4px 0;text-align:center}.vzb[disabled]{opacity:.8}.vzb.go{background:var(--accent);color:var(--on-accent,#1f1f1f);font-weight:700}
 .vtag{position:absolute;inset:12px 12px auto auto;z-index:3100;background:rgba(16,16,20,.72);color:#fff;font-size:12px;padding:6px 12px;border-radius:99px}
 .mvb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
 .live{display:none}
@@ -805,7 +805,7 @@ function shot(mode){ // 'empty' | 'full' | 'toggle'
   if(mode==='toggle'&&VZ.on){ // with an image engine connected the event picture is the only view: no paste-up
     const cur=vizShown(),has=!!VZ.img;
     const btn=VZ.busy?'<button class="ba vzb" disabled>מכינים הדמיה, כחצי דקה…</button>':has&&cur?'<button class="ba vzb" onclick="saveViz()">לשמור תמונה</button>':`<button class="ba vzb go" onclick="realistic()">${has?'לעדכן את ההדמיה':'צור הדמיה לאירוע'}</button>`;
-    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${btn}</div>`:`<div class="shot">${baseImg()}${btn}</div>`;
+    return has?`<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">${cur?'הדמיה להמחשה':'ההדמיה מלפני השינוי'}</span>${btn}</div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד.</p>`:`<div class="shot">${baseImg()}${btn}</div>`;
   }
   if(mode==='toggle'&&vizShown())return `<div class="shot vz"><img src="${VZ.img}" alt="הדמיה של המקום ערוך לאירוע עם הציוד שנבחר"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="realistic()">חזרה לעריכה</button></div>`;
   const layer=mode==='empty'?'':`<div class="layer${S.anim?' in':''}${S.move&&mode==='toggle'?' mv':''}" id="layer" style="${fitCss()}${mode==='toggle'&&S.before?'opacity:0':''}">${sprites()}</div>`;
@@ -881,7 +881,7 @@ checkout:()=>{const t=totals();
  <p class="cap">נציג של קיסר אירועים עובר על המפרט ומחזיר לכם הצעת מחיר. כפוף לאישור זמינות.</p>
  <div class="bar"><div class="swipe" id="swipe"><span class="lab">החליקו כדי לשלוח לנציג</span><button class="knob" id="knob" aria-label="לשלוח לנציג" onclick="if(event.detail===0)placeOrder()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5l-7 7 7 7"/></svg></button></div></div>`},
 done:()=>{const o=S.order;return `<div class="done"><div class="tick"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 25l8 8 16-18"/></svg></div>
- <h2>המפרט נשלח</h2><p class="sub">בקשה מס׳ ${o.no}</p>${VZ.img?`<div class="shot vz" style="margin-bottom:16px"><img src="${VZ.img}" alt="הדמיה של האירוע"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="saveViz()">לשמור תמונה</button></div>`:''}
+ <h2>המפרט נשלח</h2><p class="sub">בקשה מס׳ ${o.no}</p>${VZ.img?`<div class="shot vz" style="margin-bottom:16px"><img src="${VZ.img}" alt="הדמיה של האירוע"><span class="vtag">הדמיה להמחשה</span><button class="ba vzb" onclick="saveViz()">לשמור תמונה</button></div><p class="vnote">העיצוב שעל השולחנות (פרחים, נרות, כלים ותאורה) הוא להמחשה בלבד ואינו כלול בציוד.</p>`:''}
  <div class="recap"><div><span>מתי</span><b>${esc(o.dateText)}</b></div><div><span>איפה</span><b>${esc(o.addr)}</b></div><div><span>מה</span><b>${esc(o.what)}</b></div></div>
  <div class="trk" aria-hidden="true"><i class="d"></i><i class="a"></i><i></i><i></i></div>
  <ol class="next"><li class="done"><b>המפרט נשלח</b>עכשיו</li><li class="on"><b>נציג מכין הצעת מחיר</b>וחוזר אליכם במייל או בטלפון</li><li><b>${esc(o.dateText)}</b>הציוד מגיע ונפרק ליד המשאית</li><li><b>${esc(o.nextText)}</b>איסוף מאותה נקודה</li></ol>
