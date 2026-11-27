@@ -788,7 +788,7 @@ async function realistic(){
     let sketch;if(S.photo&&S.plan){try{sketch=pasteUp()}catch(e){}}
     const r=await fetch(VIZ,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'styled',place,place_mime:'image/jpeg',composite:sketch||undefined,mime:'image/jpeg',refs,items:`${S.guests} guests. ${items}`,style:S.style||'',hints:{place:pl.place||'',shadow:pl.shadow||''}})}),d=await r.json();
     if(r.status===429)toast('הגענו למכסת התמונות להיום. נסו מחר');
-    else if(!r.ok||!d.image||d.provider==='mock')toast('ההדמיה לא זמינה כרגע. נסו שוב');
+    else if(!r.ok||!d.image||d.provider==='mock')toast('ההדמיה לא נוצרה. אם יש בצילום אנשים, פנים או שלטים, נסו צילום אחר של המקום');
     else{VZ.img=`data:${d.mime};base64,${d.image}`;VZ.key=key}
   }catch(e){toast('אין חיבור. נסו שוב')}
   VZ.busy=false;if(S.scr==='result')keep();
